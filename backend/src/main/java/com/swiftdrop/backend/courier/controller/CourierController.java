@@ -3,6 +3,7 @@ package com.swiftdrop.backend.courier.controller;
 import com.swiftdrop.backend.courier.dto.CourierDashboardResponse;
 import com.swiftdrop.backend.courier.dto.CourierDeliveryDetailResponse;
 import com.swiftdrop.backend.courier.dto.CourierDeliverySummaryResponse;
+import com.swiftdrop.backend.courier.dto.CourierProfileProvisionRequest;
 import com.swiftdrop.backend.courier.dto.CourierProfileResponse;
 import com.swiftdrop.backend.courier.dto.CourierStatusUpdateRequest;
 import com.swiftdrop.backend.courier.dto.DeliveryConfirmationRequest;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Courier REST API for dashboard metrics, assigned deliveries, delivery execution, and profile.
@@ -46,6 +49,27 @@ public class CourierController {
     @GetMapping({"", "/profile"})
     public CourierProfileResponse getProfile(@AuthenticationPrincipal Jwt user) {
         return courierService.getProfile(CurrentUser.id(user));
+    }
+
+    /**
+     * Provisions or updates the authenticated courier's operational profile (phone, vehicle, zone).
+     */
+    @PostMapping({"", "/profile"})
+    @PreAuthorize("hasRole('COURIER') or hasAuthority('courier:manage')")
+    public CourierProfileResponse provisionProfile(
+            @Valid @RequestBody CourierProfileProvisionRequest request,
+            @AuthenticationPrincipal Jwt user) {
+        return courierService.provisionProfile(CurrentUser.id(user), request);
+    }
+
+    /**
+     * Lists active, eligible couriers optionally filtered by zone.
+     * Enables Dispatcher to discover available courier personnel for assignments.
+     */
+    @GetMapping("/eligible")
+    @PreAuthorize("hasAnyRole('COURIER', 'DISPATCHER', 'ADMIN') or hasAuthority('delivery:read-own')")
+    public List<CourierProfileResponse> getEligibleCouriers(@RequestParam(required = false) String zone) {
+        return courierService.getEligibleCouriers(zone);
     }
 
     /**

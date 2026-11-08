@@ -325,4 +325,101 @@ class CourierControllerTest {
         mockMvc.perform(get("/api/courier/dashboard").with(courierToken(courier1.getId())))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @DisplayName("16. Courier provisions operational profile successfully")
+    void courierProvisionsOperationalProfile() throws Exception {
+        AppUser newCourier = TestPeople.saved(em, "Sunil Perera", "COURIER");
+        em.flush();
+
+        String payload = """
+                {
+                    "phoneNumber": "+94779998877",
+                    "vehicleType": "VAN",
+                    "assignedZone": "Kandy South"
+                }
+                """;
+
+        mockMvc.perform(post("/api/couriers/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)
+                        .with(courierToken(newCourier.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phoneNumber").value("+94779998877"))
+                .andExpect(jsonPath("$.vehicleType").value("VAN"))
+                .andExpect(jsonPath("$.assignedZone").value("Kandy South"))
+                .andExpect(jsonPath("$.isActive").value(true));
+    }
+
+    @Test
+    @DisplayName("17. Re-provisioning updates existing profile without duplicate records")
+    void reProvisioningUpdatesExistingProfile() throws Exception {
+        String updatePayload = """
+                {
+                    "phoneNumber": "+94770001122",
+                    "vehicleType": "CAR",
+                    "assignedZone": "Colombo North"
+                }
+                """;
+
+        mockMvc.perform(post("/api/courier/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updatePayload)
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phoneNumber").value("+94770001122"))
+                .andExpect(jsonPath("$.vehicleType").value("CAR"))
+                .andExpect(jsonPath("$.assignedZone").value("Colombo North"));
+
+        // Verify count remains 1 for courier1
+        Long count = em.createQuery("SELECT count(c) FROM CourierProfile c WHERE c.user.id = :id", Long.class)
+                .setParameter("id", courier1.getId())
+                .getSingleResult();
+        org.junit.jupiter.api.Assertions.assertEquals(1L, count);
+    }
+
+    @Test
+    @DisplayName("18. Non-courier user attempting to provision courier profile is rejected")
+    void nonCourierProvisioningIsRejected() throws Exception {
+        String payload = """
+                {
+                    "phoneNumber": "+94771112233",
+                    "vehicleType": "BICYCLE",
+                    "assignedZone": "Galle"
+                }
+                """;
+
+        mockMvc.perform(post("/api/courier/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload)
+                        .with(customerToken(customerUser.getId())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("19. Eligible active couriers can be queried by Dispatcher")
+    void queryEligibleCouriers() throws Exception {
+        mockMvc.perform(get("/api/courier/eligible")
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(org.hamcrest.Matchers.greaterThanOrEqualTo(1))));
+    }
+
+    @Test
+    @DisplayName("20. Eligible couriers can be filtered by operational zone")
+    void queryEligibleCouriersFilteredByZone() throws Exception {
+        mockMvc.perform(get("/api/couriers/me/eligible")
+                        .param("zone", "Colombo Central")
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].assignedZone").value("Colombo Central"));
+
+        // Zone with no couriers returns empty list
+        mockMvc.perform(get("/api/couriers/me/eligible")
+                        .param("zone", "NonExistentZone")
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
+    }
 }

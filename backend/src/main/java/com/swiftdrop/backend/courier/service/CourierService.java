@@ -3,6 +3,7 @@ package com.swiftdrop.backend.courier.service;
 import com.swiftdrop.backend.courier.dto.CourierDashboardResponse;
 import com.swiftdrop.backend.courier.dto.CourierDeliveryDetailResponse;
 import com.swiftdrop.backend.courier.dto.CourierDeliverySummaryResponse;
+import com.swiftdrop.backend.courier.dto.CourierProfileProvisionRequest;
 import com.swiftdrop.backend.courier.dto.CourierProfileResponse;
 import com.swiftdrop.backend.courier.dto.CourierStatusUpdateRequest;
 import com.swiftdrop.backend.courier.dto.DeliveryConfirmationRequest;
@@ -75,6 +76,63 @@ public class CourierService {
             // Live directory service may be unconfigured in local or test environments
         }
         return CourierProfileResponse.from(profile, user, email);
+    }
+
+    /**
+     * Provisions or updates a CourierProfile for the authenticated user.
+     * Enforces that the user account possesses the COURIER role.
+     * Idempotent: avoids creating duplicate profiles for the same user.
+     */
+    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request) {
+        AppUser user = userDirectory.require(courierId);
+        if (!user.getRoles().contains("COURIER")) {
+            throw new IllegalArgumentException("Only users with the COURIER role may provision a courier profile");
+        }
+
+        CourierProfile profile = courierProfiles.findByUserId(courierId).orElse(null);
+        if (profile == null) {
+            String zone = (request.assignedZone() != null && !request.assignedZone().isBlank())
+                    ? request.assignedZone().trim()
+                    : "Unassigned";
+            profile = new CourierProfile(user, request.phoneNumber().trim(), request.vehicleType().trim(), zone);
+        } else {
+            profile.setPhoneNumber(request.phoneNumber().trim());
+            profile.setVehicleType(request.vehicleType().trim());
+            if (request.assignedZone() != null && !request.assignedZone().isBlank()) {
+                profile.setAssignedZone(request.assignedZone().trim());
+            }
+        }
+        courierProfiles.save(profile);
+
+        String email = null;
+        try {
+            email = userDirectory.email(courierId).orElse(null);
+        } catch (Exception ignored) {
+        }
+        return CourierProfileResponse.from(profile, user, email);
+    }
+
+    /**
+     * Lists active, eligible couriers optionally filtered by delivery zone.
+     * Enables Dispatcher assignment workflows and operational routing.
+     */
+    @Transactional(readOnly = true)
+    public List<CourierProfileResponse> getEligibleCouriers(String zone) {
+        List<CourierProfile> profiles = (zone != null && !zone.isBlank())
+                ? courierProfiles.findByAssignedZoneIgnoreCaseAndActiveTrue(zone.trim())
+                : courierProfiles.findByActiveTrue();
+
+        return profiles.stream()
+                .filter(p -> p.getUser() != null && p.getUser().isActive())
+                .map(p -> {
+                    String email = null;
+                    try {
+                        email = userDirectory.email(p.getUserId()).orElse(null);
+                    } catch (Exception ignored) {
+                    }
+                    return CourierProfileResponse.from(p, p.getUser(), email);
+                })
+                .toList();
     }
 
     /**
