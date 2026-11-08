@@ -24,6 +24,9 @@ public interface CourierDeliveryRepository extends JpaRepository<Delivery, Long>
     @Query("SELECT d FROM Delivery d WHERE d.courier.id = :courierId ORDER BY d.createdAt DESC")
     Page<Delivery> findByCourierIdOrderByCreatedAtDesc(@Param("courierId") UUID courierId, Pageable pageable);
 
+    /** Loads a delivery by tracking number regardless of assignment. */
+    Optional<Delivery> findByTrackingNumber(String trackingNumber);
+
     /** Loads a specific delivery only if assigned to this courier (horizontal privilege check). */
     @Query("SELECT d FROM Delivery d WHERE d.trackingNumber = :trackingNumber AND d.courier.id = :courierId")
     Optional<Delivery> findByTrackingNumberAndCourierId(@Param("trackingNumber") String trackingNumber,
