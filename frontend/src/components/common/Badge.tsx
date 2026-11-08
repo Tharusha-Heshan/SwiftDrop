@@ -14,8 +14,9 @@ export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) =>
   switch (normalized) {
     case 'CREATED':
     case 'PENDING':
+    case 'CONFIRMED':
       modifierClass = 'created';
-      label = 'Pending';
+      label = normalized === 'CONFIRMED' ? 'Confirmed' : 'Pending';
       break;
     case 'PICKED_UP':
       modifierClass = 'picked-up';
@@ -36,6 +37,10 @@ export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) =>
     case 'FAILED':
       modifierClass = 'failed';
       label = 'Failed';
+      break;
+    case 'CANCELLED':
+      modifierClass = 'failed';
+      label = 'Cancelled';
       break;
     default:
       modifierClass = 'pending';

@@ -29,6 +29,7 @@ export const DeliveryDetailPage: React.FC = () => {
   const [failureReason, setFailureReason] = useState<string>('RECIPIENT_UNAVAILABLE');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,6 +77,7 @@ export const DeliveryDetailPage: React.FC = () => {
 
     try {
       setSubmitting(true);
+      setActionError(null);
       const updated = await courierService.updateDeliveryStatus(delivery.trackingNumber, {
         nextStatus,
         notes: actionNotes,
@@ -85,7 +87,8 @@ export const DeliveryDetailPage: React.FC = () => {
       setActionType('NONE');
       setActionNotes('');
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to update status.');
+      const msg = err instanceof Error ? err.message : 'Failed to update status.';
+      setActionError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -96,12 +99,13 @@ export const DeliveryDetailPage: React.FC = () => {
     if (!delivery) return;
 
     if (!signName.trim()) {
-      alert('Recipient confirmation name is required.');
+      setActionError('Recipient confirmation name is required.');
       return;
     }
 
     try {
       setSubmitting(true);
+      setActionError(null);
       const updated = await courierService.confirmDelivery(delivery.trackingNumber, {
         recipientSignName: signName,
         deliveryNotes: actionNotes,
@@ -110,7 +114,8 @@ export const DeliveryDetailPage: React.FC = () => {
       setActionSuccess('Delivery confirmed successfully!');
       setActionType('NONE');
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to confirm delivery.');
+      const msg = err instanceof Error ? err.message : 'Failed to confirm delivery.';
+      setActionError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -121,12 +126,13 @@ export const DeliveryDetailPage: React.FC = () => {
     if (!delivery) return;
 
     if (!actionNotes.trim()) {
-      alert('Detailed failure remarks are mandatory.');
+      setActionError('Detailed failure remarks are mandatory.');
       return;
     }
 
     try {
       setSubmitting(true);
+      setActionError(null);
       const updated = await courierService.reportFailure(delivery.trackingNumber, {
         failureReason,
         failureRemarks: actionNotes,
@@ -135,7 +141,8 @@ export const DeliveryDetailPage: React.FC = () => {
       setActionSuccess('Delivery marked as failed.');
       setActionType('NONE');
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to report failure.');
+      const msg = err instanceof Error ? err.message : 'Failed to report failure.';
+      setActionError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -221,6 +228,34 @@ export const DeliveryDetailPage: React.FC = () => {
             type="button"
             onClick={() => setActionSuccess(null)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Error Notification Alert */}
+      {actionError && (
+        <div
+          style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            color: '#B91C1C',
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '14px',
+            fontWeight: 600,
+          }}
+        >
+          <span>⚠ {actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C' }}
           >
             ✕
           </button>

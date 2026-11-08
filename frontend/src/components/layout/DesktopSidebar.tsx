@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { logOut } from '../../features/auth/api/authApi';
 import {
   LogoParcelIcon,
   TruckIcon,
@@ -12,6 +13,14 @@ import {
 } from '../common/Icons';
 
 export const DesktopSidebar: React.FC = () => {
+  const handleLogout = async () => {
+    try {
+      await logOut();
+    } catch {
+      // Continue navigation even if revoke fails
+    }
+    window.location.href = '/';
+  };
   return (
     <aside className="sidebar">
       {/* Brand Header */}
@@ -80,13 +89,30 @@ export const DesktopSidebar: React.FC = () => {
           <li className="sidebar-divider"></li>
 
           <li>
-            <div
-              className="nav-item disabled"
-              title="Logout will be activated when shared Identity module is integrated"
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="nav-item"
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontFamily: 'inherit',
+                fontSize: '13.5px',
+                color: '#8A827B',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '10px 14px',
+                borderRadius: 'var(--radius-md)',
+              }}
+              title="Log out of Courier Portal"
             >
               <LogoutIcon size={19} color="#8A827B" />
-              <span style={{ color: '#8A827B' }}>Logout (Dev)</span>
-            </div>
+              <span>Log Out</span>
+            </button>
           </li>
         </ul>
       </nav>

@@ -7,16 +7,72 @@ import { TruckIcon, PhoneIcon } from '../../components/common/Icons';
 export const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<CourierProfile | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     Promise.all([
       courierService.getCourierProfile(),
       courierService.getDashboardStats(),
-    ]).then(([p, s]) => {
-      setProfile(p);
-      setStats(s);
-    });
+    ])
+      .then(([p, s]) => {
+        if (isMounted) {
+          setProfile(p);
+          setStats(s);
+          setError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to retrieve profile data.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  if (loading && !profile) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 20px', color: '#746C65' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600 }}>Loading Courier Profile...</p>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#DC2626', fontWeight: 700, marginBottom: '12px' }}>
+          {error || 'Unable to retrieve courier profile.'}
+        </p>
+        <button
+          type="button"
+          className="btn-action primary"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const initials = profile.fullName
+    ? profile.fullName
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'CP';
 
   return (
     <>
@@ -43,11 +99,11 @@ export const ProfilePage: React.FC = () => {
                 justifyContent: 'center',
               }}
             >
-              SM
+              {initials}
             </div>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {profile?.fullName || 'Sachin Maleesha'}
+                {profile.fullName || 'Authorized Courier'}
               </h2>
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 Authorized Courier Personnel
@@ -60,7 +116,7 @@ export const ProfilePage: React.FC = () => {
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
                 Email Address
               </span>
-              <span style={{ fontWeight: 600 }}>{profile?.email}</span>
+              <span style={{ fontWeight: 600 }}>{profile.email || 'Not provided'}</span>
             </div>
 
             <div>
@@ -69,7 +125,7 @@ export const ProfilePage: React.FC = () => {
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <PhoneIcon size={14} color="#746C65" />
-                {profile?.phoneNumber}
+                {profile.phoneNumber || 'Not provided'}
               </span>
             </div>
 
@@ -77,7 +133,7 @@ export const ProfilePage: React.FC = () => {
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
                 Assigned Delivery Zone
               </span>
-              <span style={{ fontWeight: 600 }}>{profile?.assignedZone}</span>
+              <span style={{ fontWeight: 600 }}>{profile.assignedZone || 'Not assigned'}</span>
             </div>
 
             <div>
@@ -86,7 +142,7 @@ export const ProfilePage: React.FC = () => {
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                 <TruckIcon size={14} color="#746C65" />
-                {profile?.vehicleType}
+                {profile.vehicleType || 'Standard'}
               </span>
             </div>
           </div>
@@ -109,7 +165,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <span style={{ color: 'var(--text-secondary)', fontSize: '13.5px' }}>Total Assigned</span>
-              <strong style={{ fontSize: '16px' }}>{stats?.assignedToday ?? 12}</strong>
+              <strong style={{ fontSize: '16px' }}>{stats?.assignedToday ?? 0}</strong>
             </div>
 
             <div
@@ -123,7 +179,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <span style={{ fontSize: '13.5px' }}>Successful Deliveries</span>
-              <strong style={{ fontSize: '16px' }}>{stats?.delivered ?? 6}</strong>
+              <strong style={{ fontSize: '16px' }}>{stats?.delivered ?? 0}</strong>
             </div>
 
             <div
@@ -137,7 +193,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <span style={{ fontSize: '13.5px' }}>Reported Failures</span>
-              <strong style={{ fontSize: '16px' }}>{stats?.failed ?? 1}</strong>
+              <strong style={{ fontSize: '16px' }}>{stats?.failed ?? 0}</strong>
             </div>
 
             <div
@@ -151,7 +207,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <span style={{ fontSize: '13.5px' }}>Completion Rate</span>
-              <strong style={{ fontSize: '16px' }}>{stats?.completionPercentage ?? 50}%</strong>
+              <strong style={{ fontSize: '16px' }}>{stats?.completionPercentage ?? 0}%</strong>
             </div>
           </div>
         </div>

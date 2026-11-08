@@ -5,11 +5,14 @@
 
 export type ParcelStatus = 
   | 'CREATED'
+  | 'PENDING'
+  | 'CONFIRMED'
   | 'PICKED_UP'
   | 'IN_TRANSIT'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'CANCELLED';
 
 export type StatusFilterOption = 'ALL' | 'PENDING' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
 
@@ -89,16 +92,21 @@ export interface ActivityUpdate {
 export interface StatusUpdateRequest {
   nextStatus: ParcelStatus;
   notes?: string;
+  location?: string;
 }
 
 export interface DeliveryConfirmationRequest {
   recipientSignName: string;
+  proofType?: string;
   deliveryNotes?: string;
+  proofMediaUrl?: string;
+  location?: string;
 }
 
 export interface DeliveryFailureRequest {
   failureReason: string;
   failureRemarks: string;
+  location?: string;
 }
 
 export interface CourierDataService {

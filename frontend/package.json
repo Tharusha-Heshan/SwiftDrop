@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "npx tsx --test src/services/courier/__tests__/courierService.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
