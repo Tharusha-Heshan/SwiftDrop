@@ -68,7 +68,12 @@ public class CourierService {
     public CourierProfileResponse getProfile(UUID courierId) {
         AppUser user = userDirectory.require(courierId);
         CourierProfile profile = courierProfiles.findByUserId(courierId).orElse(null);
-        String email = userDirectory.email(courierId).orElse(null);
+        String email = null;
+        try {
+            email = userDirectory.email(courierId).orElse(null);
+        } catch (Exception ignored) {
+            // Live directory service may be unconfigured in local or test environments
+        }
         return CourierProfileResponse.from(profile, user, email);
     }
 
