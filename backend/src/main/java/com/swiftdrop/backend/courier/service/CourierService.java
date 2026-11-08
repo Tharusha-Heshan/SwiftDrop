@@ -80,26 +80,53 @@ public class CourierService {
 
     /**
      * Provisions or updates a CourierProfile for the authenticated user.
-     * Enforces that the user account possesses the COURIER role.
+     * Enforces role requirements and inactive user validation.
+     * Setting assigned delivery zone or active eligibility requires DISPATCHER or ADMIN authority.
+     * Couriers updating their own profile may only update contact phone number.
      * Idempotent: avoids creating duplicate profiles for the same user.
      */
-    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request) {
+    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request, boolean isDispatcherOrAdmin) {
         AppUser user = userDirectory.require(courierId);
+        if (!user.isActive()) {
+            throw new IllegalArgumentException("Cannot provision courier profile for inactive user account");
+        }
         if (!user.getRoles().contains("COURIER")) {
-            throw new IllegalArgumentException("Only users with the COURIER role may provision a courier profile");
+            throw new IllegalArgumentException("Only users with the COURIER role may have a courier profile");
         }
 
         CourierProfile profile = courierProfiles.findByUserId(courierId).orElse(null);
+
+        // Security check: Couriers cannot self-assign operational zone or active status
+        if (!isDispatcherOrAdmin) {
+            boolean attemptingZoneChange = request.assignedZone() != null
+                    && !request.assignedZone().isBlank()
+                    && (profile == null || !request.assignedZone().trim().equalsIgnoreCase(profile.getAssignedZone()));
+            boolean attemptingActiveChange = request.active() != null
+                    && (profile == null || request.active() != profile.isActive());
+
+            if (attemptingZoneChange || attemptingActiveChange) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Couriers cannot self-assign operational delivery zones or dispatch eligibility; this action requires Dispatcher or Administrator authority.");
+            }
+        }
+
         if (profile == null) {
-            String zone = (request.assignedZone() != null && !request.assignedZone().isBlank())
+            String zone = (isDispatcherOrAdmin && request.assignedZone() != null && !request.assignedZone().isBlank())
                     ? request.assignedZone().trim()
                     : "Unassigned";
+            boolean active = (request.active() != null) ? request.active() : isDispatcherOrAdmin;
             profile = new CourierProfile(user, request.phoneNumber().trim(), request.vehicleType().trim(), zone);
+            profile.setActive(active);
         } else {
             profile.setPhoneNumber(request.phoneNumber().trim());
-            profile.setVehicleType(request.vehicleType().trim());
-            if (request.assignedZone() != null && !request.assignedZone().isBlank()) {
-                profile.setAssignedZone(request.assignedZone().trim());
+            if (isDispatcherOrAdmin) {
+                profile.setVehicleType(request.vehicleType().trim());
+                if (request.assignedZone() != null && !request.assignedZone().isBlank()) {
+                    profile.setAssignedZone(request.assignedZone().trim());
+                }
+                if (request.active() != null) {
+                    profile.setActive(request.active());
+                }
             }
         }
         courierProfiles.save(profile);
@@ -110,6 +137,10 @@ public class CourierService {
         } catch (Exception ignored) {
         }
         return CourierProfileResponse.from(profile, user, email);
+    }
+
+    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request) {
+        return provisionProfile(courierId, request, true);
     }
 
     /**
@@ -123,7 +154,7 @@ public class CourierService {
                 : courierProfiles.findByActiveTrue();
 
         return profiles.stream()
-                .filter(p -> p.getUser() != null && p.getUser().isActive())
+                .filter(p -> p.getUser() != null && p.getUser().isActive() && !"Unassigned".equalsIgnoreCase(p.getAssignedZone()))
                 .map(p -> {
                     String email = null;
                     try {

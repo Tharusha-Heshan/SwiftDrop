@@ -5,8 +5,8 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Request payload for provisioning or updating a courier operational profile.
- * Operational attributes (vehicle, zone, contact) are maintained here while
- * identity and credentials belong to {@link com.swiftdrop.backend.identity.AppUser}.
+ * Operational attributes (vehicle, zone, active status) are maintained here under
+ * Dispatcher/Admin supervision while identity belongs to {@link com.swiftdrop.backend.identity.AppUser}.
  */
 public record CourierProfileProvisionRequest(
         @NotBlank(message = "Phone number is required")
@@ -18,5 +18,11 @@ public record CourierProfileProvisionRequest(
         String vehicleType,
 
         @Size(max = 100, message = "Assigned zone must not exceed 100 characters")
-        String assignedZone
-) {}
+        String assignedZone,
+
+        Boolean active
+) {
+    public CourierProfileProvisionRequest(String phoneNumber, String vehicleType, String assignedZone) {
+        this(phoneNumber, vehicleType, assignedZone, null);
+    }
+}

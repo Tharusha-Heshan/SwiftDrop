@@ -52,22 +52,35 @@ public class CourierController {
     }
 
     /**
-     * Provisions or updates the authenticated courier's operational profile (phone, vehicle, zone).
+     * Self-service contact update for authenticated courier.
+     * Couriers may update contact details, but cannot self-assign operational zones or active eligibility.
      */
-    @PostMapping({"", "/profile"})
+    @RequestMapping(value = {"", "/profile"}, method = {RequestMethod.POST, RequestMethod.PATCH, RequestMethod.PUT})
     @PreAuthorize("hasRole('COURIER') or hasAuthority('courier:manage')")
-    public CourierProfileResponse provisionProfile(
+    public CourierProfileResponse updateOwnProfile(
             @Valid @RequestBody CourierProfileProvisionRequest request,
             @AuthenticationPrincipal Jwt user) {
-        return courierService.provisionProfile(CurrentUser.id(user), request);
+        boolean isDispatcherOrAdmin = CurrentUser.hasAnyRole(user, "DISPATCHER", "ADMIN");
+        return courierService.provisionProfile(CurrentUser.id(user), request, isDispatcherOrAdmin);
+    }
+
+    /**
+     * Dispatcher / Admin endpoint to provision or update a courier's operational zone, vehicle, and eligibility.
+     */
+    @RequestMapping(value = "/{courierId}/profile", method = {RequestMethod.POST, RequestMethod.PUT})
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN') or hasAuthority('delivery:assign')")
+    public CourierProfileResponse provisionCourierProfile(
+            @PathVariable java.util.UUID courierId,
+            @Valid @RequestBody CourierProfileProvisionRequest request) {
+        return courierService.provisionProfile(courierId, request, true);
     }
 
     /**
      * Lists active, eligible couriers optionally filtered by zone.
-     * Enables Dispatcher to discover available courier personnel for assignments.
+     * Accessible exclusively by Dispatcher and Admin roles for assignment routing.
      */
     @GetMapping("/eligible")
-    @PreAuthorize("hasAnyRole('COURIER', 'DISPATCHER', 'ADMIN') or hasAuthority('delivery:read-own')")
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN') or hasAuthority('delivery:assign')")
     public List<CourierProfileResponse> getEligibleCouriers(@RequestParam(required = false) String zone) {
         return courierService.getEligibleCouriers(zone);
     }

@@ -53,6 +53,7 @@ class CourierControllerTest {
     private AppUser courier1;
     private AppUser courier2;
     private AppUser customerUser;
+    private AppUser dispatcherUser;
     private Customer customer;
     private Delivery delivery1;
 
@@ -72,11 +73,20 @@ class CourierControllerTest {
                         new SimpleGrantedAuthority("parcel:create"));
     }
 
+    private static RequestPostProcessor dispatcherToken(UUID userId) {
+        return jwt().jwt(token -> token.subject(userId.toString()).claim("name", "Test Dispatcher")
+                        .claim("roles", List.of("DISPATCHER")))
+                .authorities(new SimpleGrantedAuthority("ROLE_DISPATCHER"),
+                        new SimpleGrantedAuthority("delivery:assign"),
+                        new SimpleGrantedAuthority("courier:manage"));
+    }
+
     @BeforeEach
     void setUp() {
         courier1 = TestPeople.saved(em, "Sachin Silva", "COURIER");
         courier2 = TestPeople.saved(em, "Nimal Perera", "COURIER");
         customerUser = TestPeople.saved(em, "Alice Fernando", "CUSTOMER");
+        dispatcherUser = TestPeople.saved(em, "Dave Dispatcher", "DISPATCHER");
 
         CourierProfile profile1 = new CourierProfile(courier1, "+94771234567", "MOTORCYCLE", "Colombo Central");
         em.persist(profile1);
@@ -327,8 +337,45 @@ class CourierControllerTest {
     }
 
     @Test
-    @DisplayName("16. Courier provisions operational profile successfully")
-    void courierProvisionsOperationalProfile() throws Exception {
+    @DisplayName("16. Courier self-assigning operational zone or active status is rejected with 403 Forbidden; phone update succeeds")
+    void courierSelfAssigningZoneIsRejected() throws Exception {
+        // Attempting to self-register an operational zone as a courier
+        String unauthorizedZonePayload = """
+                {
+                    "phoneNumber": "+94779998877",
+                    "vehicleType": "VAN",
+                    "assignedZone": "Kandy South",
+                    "active": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/couriers/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(unauthorizedZonePayload)
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("cannot self-assign operational delivery zones")));
+
+        // Updating only personal phone number succeeds
+        String validSelfUpdatePayload = """
+                {
+                    "phoneNumber": "+94770003344",
+                    "vehicleType": "MOTORCYCLE",
+                    "assignedZone": "Colombo Central"
+                }
+                """;
+
+        mockMvc.perform(post("/api/couriers/me/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validSelfUpdatePayload)
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.phoneNumber").value("+94770003344"));
+    }
+
+    @Test
+    @DisplayName("17. Dispatcher provisions courier operational profile (vehicle, zone, active) successfully")
+    void dispatcherProvisionsCourierProfile() throws Exception {
         AppUser newCourier = TestPeople.saved(em, "Sunil Perera", "COURIER");
         em.flush();
 
@@ -336,51 +383,38 @@ class CourierControllerTest {
                 {
                     "phoneNumber": "+94779998877",
                     "vehicleType": "VAN",
-                    "assignedZone": "Kandy South"
+                    "assignedZone": "Kandy South",
+                    "active": true
                 }
                 """;
 
-        mockMvc.perform(post("/api/couriers/me/profile")
+        mockMvc.perform(post("/api/courier/" + newCourier.getId() + "/profile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
-                        .with(courierToken(newCourier.getId())))
+                        .with(dispatcherToken(dispatcherUser.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.phoneNumber").value("+94779998877"))
                 .andExpect(jsonPath("$.vehicleType").value("VAN"))
                 .andExpect(jsonPath("$.assignedZone").value("Kandy South"))
                 .andExpect(jsonPath("$.isActive").value(true));
-    }
 
-    @Test
-    @DisplayName("17. Re-provisioning updates existing profile without duplicate records")
-    void reProvisioningUpdatesExistingProfile() throws Exception {
-        String updatePayload = """
-                {
-                    "phoneNumber": "+94770001122",
-                    "vehicleType": "CAR",
-                    "assignedZone": "Colombo North"
-                }
-                """;
-
-        mockMvc.perform(post("/api/courier/profile")
+        // Re-provisioning by dispatcher updates without duplicate records
+        mockMvc.perform(post("/api/courier/" + newCourier.getId() + "/profile")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(updatePayload)
-                        .with(courierToken(courier1.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.phoneNumber").value("+94770001122"))
-                .andExpect(jsonPath("$.vehicleType").value("CAR"))
-                .andExpect(jsonPath("$.assignedZone").value("Colombo North"));
+                        .content(payload)
+                        .with(dispatcherToken(dispatcherUser.getId())))
+                .andExpect(status().isOk());
 
-        // Verify count remains 1 for courier1
         Long count = em.createQuery("SELECT count(c) FROM CourierProfile c WHERE c.user.id = :id", Long.class)
-                .setParameter("id", courier1.getId())
+                .setParameter("id", newCourier.getId())
                 .getSingleResult();
         org.junit.jupiter.api.Assertions.assertEquals(1L, count);
     }
 
     @Test
-    @DisplayName("18. Non-courier user attempting to provision courier profile is rejected")
-    void nonCourierProvisioningIsRejected() throws Exception {
+    @DisplayName("18. Inactive user or non-courier user cannot be provisioned as courier")
+    void invalidUserProvisioningIsRejected() throws Exception {
+        // Non-courier role
         String payload = """
                 {
                     "phoneNumber": "+94771112233",
@@ -389,36 +423,47 @@ class CourierControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/courier/profile")
+        mockMvc.perform(post("/api/courier/" + customerUser.getId() + "/profile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload)
+                        .with(dispatcherToken(dispatcherUser.getId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("Only users with the COURIER role")));
+    }
+
+    @Test
+    @DisplayName("19. Courier or Customer attempting to enumerate eligible couriers is rejected with 403 Forbidden")
+    void unauthorizedCourierEnumerationIsRejected() throws Exception {
+        // Courier caller rejected
+        mockMvc.perform(get("/api/courier/eligible")
+                        .with(courierToken(courier1.getId())))
+                .andExpect(status().isForbidden());
+
+        // Customer caller rejected
+        mockMvc.perform(get("/api/courier/eligible")
                         .with(customerToken(customerUser.getId())))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("19. Eligible active couriers can be queried by Dispatcher")
-    void queryEligibleCouriers() throws Exception {
+    @DisplayName("20. Dispatcher queries eligible couriers and filters by zone")
+    void dispatcherQueriesEligibleCouriersFilteredByZone() throws Exception {
         mockMvc.perform(get("/api/courier/eligible")
-                        .with(courierToken(courier1.getId())))
+                        .with(dispatcherToken(dispatcherUser.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(org.hamcrest.Matchers.greaterThanOrEqualTo(1))));
-    }
 
-    @Test
-    @DisplayName("20. Eligible couriers can be filtered by operational zone")
-    void queryEligibleCouriersFilteredByZone() throws Exception {
-        mockMvc.perform(get("/api/couriers/me/eligible")
+        mockMvc.perform(get("/api/courier/eligible")
                         .param("zone", "Colombo Central")
-                        .with(courierToken(courier1.getId())))
+                        .with(dispatcherToken(dispatcherUser.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
                 .andExpect(jsonPath("$[0].assignedZone").value("Colombo Central"));
 
-        // Zone with no couriers returns empty list
-        mockMvc.perform(get("/api/couriers/me/eligible")
+        // Non-existent zone
+        mockMvc.perform(get("/api/courier/eligible")
                         .param("zone", "NonExistentZone")
-                        .with(courierToken(courier1.getId())))
+                        .with(dispatcherToken(dispatcherUser.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(0)));
     }

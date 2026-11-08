@@ -19,4 +19,14 @@ final class CurrentUser {
         }
         return UUID.fromString(token.getSubject());
     }
+
+    static boolean hasAnyRole(Jwt token, String... roles) {
+        if (token == null) return false;
+        java.util.List<String> tokenRoles = token.getClaimAsStringList("roles");
+        if (tokenRoles == null) return false;
+        for (String r : roles) {
+            if (tokenRoles.contains(r)) return true;
+        }
+        return false;
+    }
 }
