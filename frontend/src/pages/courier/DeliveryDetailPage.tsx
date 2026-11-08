@@ -9,6 +9,10 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
   ClockIcon,
+  CopyIcon,
+  CheckIcon,
+  TruckIcon,
+  ShieldCheckIcon,
 } from '../../components/common/Icons';
 import { courierService } from '../../services/courier/courierService';
 import type { DeliveryDetails, ParcelStatus } from '../../types/courier';
@@ -31,6 +35,14 @@ function getPermittedNextStatuses(current?: ParcelStatus): ParcelStatus[] {
   }
 }
 
+const STEPS: { status: ParcelStatus; label: string }[] = [
+  { status: 'CONFIRMED', label: 'Confirmed' },
+  { status: 'PICKED_UP', label: 'Picked Up' },
+  { status: 'IN_TRANSIT', label: 'In Transit' },
+  { status: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+  { status: 'DELIVERED', label: 'Delivered' },
+];
+
 export const DeliveryDetailPage: React.FC = () => {
   const { trackingNumber } = useParams<{ trackingNumber: string }>();
   const navigate = useNavigate();
@@ -48,6 +60,8 @@ export const DeliveryDetailPage: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [copiedTracking, setCopiedTracking] = useState<boolean>(false);
+  const [copiedAddress, setCopiedAddress] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +77,6 @@ export const DeliveryDetailPage: React.FC = () => {
             setError(`Parcel with tracking number "${trackingNumber}" was not found.`);
           } else {
             setDelivery(data);
-            // Default next status based on permitted lifecycle transitions
             if (data.status === 'PENDING' || data.status === 'CONFIRMED') {
               setNextStatus('PICKED_UP');
             } else if (data.status === 'PICKED_UP') {
@@ -95,6 +108,21 @@ export const DeliveryDetailPage: React.FC = () => {
     };
   }, [trackingNumber]);
 
+  const handleCopyTracking = () => {
+    if (!delivery) return;
+    navigator.clipboard.writeText(delivery.trackingNumber);
+    setCopiedTracking(true);
+    setTimeout(() => setCopiedTracking(false), 2000);
+  };
+
+  const handleCopyAddress = () => {
+    if (!delivery) return;
+    const full = `${delivery.deliveryAddress}, ${delivery.city} ${delivery.postalCode}`;
+    navigator.clipboard.writeText(full);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
   const handleAdvanceStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!delivery) return;
@@ -107,7 +135,7 @@ export const DeliveryDetailPage: React.FC = () => {
         notes: actionNotes,
       });
       setDelivery(updated);
-      setActionSuccess(`Status advanced to ${nextStatus.replace('_', ' ')}!`);
+      setActionSuccess(`Status advanced to ${nextStatus.replace(/_/g, ' ')}!`);
       setActionType('NONE');
       setActionNotes('');
     } catch (err: unknown) {
@@ -123,7 +151,7 @@ export const DeliveryDetailPage: React.FC = () => {
     if (!delivery) return;
 
     if (!signName.trim()) {
-      setActionError('Recipient confirmation name is required.');
+      setActionError('Recipient confirmation signature name is required.');
       return;
     }
 
@@ -135,7 +163,7 @@ export const DeliveryDetailPage: React.FC = () => {
         deliveryNotes: actionNotes,
       });
       setDelivery(updated);
-      setActionSuccess('Delivery confirmed successfully!');
+      setActionSuccess('Delivery confirmed and signature proof logged successfully!');
       setActionType('NONE');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to confirm delivery.';
@@ -162,7 +190,7 @@ export const DeliveryDetailPage: React.FC = () => {
         failureRemarks: actionNotes,
       });
       setDelivery(updated);
-      setActionSuccess('Delivery marked as failed.');
+      setActionSuccess('Delivery marked as failed. Dispatcher notified.');
       setActionType('NONE');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to report failure.';
@@ -174,25 +202,34 @@ export const DeliveryDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
-        <p>Loading parcel details...</p>
+      <div className="delivery-detail-skeleton">
+        <div className="skeleton-row shimmer" style={{ height: '50px', marginBottom: '20px' }} />
+        <div className="skeleton-row shimmer" style={{ height: '140px', marginBottom: '20px' }} />
+        <div className="skeleton-stats-grid">
+          <div className="skeleton-card shimmer" style={{ height: '260px' }} />
+          <div className="skeleton-card shimmer" style={{ height: '260px' }} />
+        </div>
       </div>
     );
   }
 
   if (error || !delivery) {
     return (
-      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-        <p style={{ color: '#DC2626', fontWeight: 700, marginBottom: '16px' }}>
-          {error || 'Parcel not found.'}
+      <div className="dashboard-error-card">
+        <div className="dashboard-error-icon">
+          <AlertCircleIcon size={32} color="#EF4444" />
+        </div>
+        <h2 className="dashboard-error-title">Parcel Record Unavailable</h2>
+        <p className="dashboard-error-text">
+          {error || 'The requested parcel could not be found or you do not have permission to view it.'}
         </p>
         <button
           type="button"
-          className="btn-action"
+          className="btn-action primary"
           onClick={() => navigate('/courier/deliveries')}
         >
           <ArrowLeftIcon size={16} />
-          <span>Back to My Deliveries</span>
+          <span>Return to My Deliveries</span>
         </button>
       </div>
     );
@@ -202,529 +239,509 @@ export const DeliveryDetailPage: React.FC = () => {
   const isFailed = delivery.status === 'FAILED';
   const isCompleted = isDelivered || isFailed;
 
+  // Compute current step index
+  const currentStepIdx = STEPS.findIndex((s) => s.status === delivery.status);
+
   return (
     <>
       <TopHeader
         title={`Parcel ${delivery.trackingNumber}`}
-        subtitle={`Delivery assigned to ${delivery.recipientName}`}
+        subtitle={`Scheduled delivery to ${delivery.recipientName} • ${delivery.city}`}
       />
 
-      {/* Back Button & Navigation Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <Link
-          to="/courier/deliveries"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: 'var(--text-secondary)',
-            textDecoration: 'none',
-            fontSize: '13.5px',
-            fontWeight: 600,
-          }}
-        >
+      {/* Navigation Breadcrumb Bar */}
+      <div className="detail-breadcrumb-bar">
+        <Link to="/courier/deliveries" className="detail-back-link">
           <ArrowLeftIcon size={16} />
-          <span>Back to My Deliveries</span>
+          <span>Back to Deliveries</span>
         </Link>
-
-        <StatusBadge status={delivery.status} />
+        <div className="detail-header-status-wrap">
+          <span className="detail-assigned-label">ASSIGNED ROUTE</span>
+          <StatusBadge status={delivery.status} size="md" />
+        </div>
       </div>
 
-      {/* Success Notification Alert */}
+      {/* Floating Toast Notification */}
       {actionSuccess && (
-        <div
-          style={{
-            backgroundColor: '#F0FAF3',
-            border: '1px solid #D6EFE0',
-            color: '#166534',
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}
-        >
-          <span>✓ {actionSuccess}</span>
+        <div className="detail-toast-alert success">
+          <div className="toast-left">
+            <CheckCircleIcon size={18} color="#10B981" />
+            <span>{actionSuccess}</span>
+          </div>
           <button
             type="button"
+            className="toast-close-btn"
             onClick={() => setActionSuccess(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534' }}
+            aria-label="Dismiss alert"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Error Notification Alert */}
       {actionError && (
-        <div
-          style={{
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            color: '#B91C1C',
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}
-        >
-          <span>⚠ {actionError}</span>
+        <div className="detail-toast-alert error">
+          <div className="toast-left">
+            <AlertCircleIcon size={18} color="#EF4444" />
+            <span>{actionError}</span>
+          </div>
           <button
             type="button"
+            className="toast-close-btn"
             onClick={() => setActionError(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C' }}
+            aria-label="Dismiss alert"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Main Details Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        {/* Card 1: Recipient & Location */}
-        <div className="content-card">
-          <h2 className="card-title" style={{ marginBottom: '16px' }}>
-            Recipient & Destination
-          </h2>
+      {/* Hero Tracking Card with Stepper */}
+      <div className="content-card detail-hero-card">
+        <div className="detail-hero-top">
+          <div className="detail-tracking-headline">
+            <div className="tracking-code-large">
+              <span>{delivery.trackingNumber}</span>
+              <button
+                type="button"
+                className={`btn-copy-lg ${copiedTracking ? 'copied' : ''}`}
+                onClick={handleCopyTracking}
+                title={copiedTracking ? 'Copied!' : 'Copy tracking code'}
+              >
+                {copiedTracking ? (
+                  <>
+                    <CheckIcon size={14} color="#10B981" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon size={14} />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <span className="detail-assigned-time">Assigned at: {delivery.assignedAt || 'Today, 08:00 AM'}</span>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                Recipient Name
-              </span>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {delivery.recipientName}
-              </span>
+          <div className="detail-quick-actions">
+            {!isCompleted ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-action primary btn-action-lg"
+                  onClick={() => setActionType('ADVANCE')}
+                >
+                  <TruckIcon size={16} />
+                  <span>Update Status</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-action btn-confirm-lg"
+                  onClick={() => setActionType('CONFIRM')}
+                >
+                  <CheckCircleIcon size={16} color="#FFFFFF" />
+                  <span>Confirm Delivered</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-action btn-fail-lg"
+                  onClick={() => setActionType('FAIL')}
+                >
+                  <AlertCircleIcon size={16} color="#DC2626" />
+                  <span>Report Failure</span>
+                </button>
+              </>
+            ) : (
+              <div className="detail-completed-badge-card">
+                {isDelivered ? (
+                  <span className="completed-tag delivered">
+                    <CheckCircleIcon size={16} color="#059669" />
+                    Delivery Completed & Signed
+                  </span>
+                ) : (
+                  <span className="completed-tag failed">
+                    <AlertCircleIcon size={16} color="#DC2626" />
+                    Delivery Attempt Failed
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Visual Lifecycle Stepper Pipeline */}
+        <div className="lifecycle-stepper-container" aria-label="Delivery progress timeline">
+          <div className="stepper-track">
+            {STEPS.map((step, idx) => {
+              const isPast = currentStepIdx >= idx;
+              const isCurrent = currentStepIdx === idx;
+              const isFailedStep = isFailed && idx === currentStepIdx;
+
+              return (
+                <div
+                  key={step.status}
+                  className={`stepper-step ${isPast ? 'past' : ''} ${isCurrent ? 'current' : ''} ${isFailedStep ? 'failed-node' : ''}`}
+                >
+                  <div className="stepper-dot">
+                    {isFailedStep ? (
+                      <AlertCircleIcon size={14} color="#FFFFFF" />
+                    ) : isPast ? (
+                      <CheckIcon size={14} color={isCurrent ? '#181B20' : '#FFFFFF'} />
+                    ) : (
+                      <span className="step-num">{idx + 1}</span>
+                    )}
+                  </div>
+                  <span className="stepper-label">{step.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Details Grid: Recipient Card + Audit & Proof */}
+      <div className="detail-columns-grid">
+        {/* Left Column: Destination & Package Specifications */}
+        <div className="detail-col">
+          <div className="content-card detail-spec-card">
+            <h2 className="card-title">Recipient & Delivery Destination</h2>
+
+            <div className="detail-info-block">
+              <span className="spec-label">Recipient Name</span>
+              <span className="spec-value-large">{delivery.recipientName}</span>
             </div>
 
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                Phone Number
-              </span>
-              <a
-                href={`tel:${delivery.recipientPhone}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: '#2563EB',
-                  textDecoration: 'none',
-                  marginTop: '2px',
-                }}
-              >
-                <PhoneIcon size={14} />
-                {delivery.recipientPhone}
+            <div className="detail-info-block">
+              <span className="spec-label">Contact Number</span>
+              <a href={`tel:${delivery.recipientPhone}`} className="spec-phone-link">
+                <PhoneIcon size={15} />
+                <span>{delivery.recipientPhone}</span>
               </a>
             </div>
 
-            <div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>
-                Delivery Address
-              </span>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginTop: '4px' }}>
-                <LocationPinIcon size={16} color="#9E968E" style={{ marginTop: '2px', flexShrink: 0 }} />
-                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <div className="detail-info-block">
+              <div className="spec-label-row">
+                <span className="spec-label">Delivery Address</span>
+                <button
+                  type="button"
+                  className="spec-copy-link"
+                  onClick={handleCopyAddress}
+                  title="Copy destination address"
+                >
+                  {copiedAddress ? 'Address Copied!' : 'Copy Address'}
+                </button>
+              </div>
+              <div className="spec-address-box">
+                <LocationPinIcon size={16} color="var(--primary-active)" className="address-box-pin" />
+                <span className="spec-address-text">
                   {delivery.deliveryAddress}, {delivery.city} ({delivery.postalCode})
                 </span>
               </div>
             </div>
 
             {delivery.specialInstructions && (
-              <div
-                style={{
-                  backgroundColor: '#FFFBEB',
-                  border: '1px solid #FEF3C7',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '12px',
-                  marginTop: '6px',
-                }}
-              >
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', display: 'block' }}>
-                  Delivery Instructions
-                </span>
-                <p style={{ fontSize: '13px', color: '#78350F', marginTop: '4px' }}>
-                  {delivery.specialInstructions}
-                </p>
+              <div className="spec-instructions-alert">
+                <span className="instructions-tag">Customer Special Instructions</span>
+                <p className="instructions-body">{delivery.specialInstructions}</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Card 2: Actions & Proof */}
-        <div className="content-card">
-          <h2 className="card-title" style={{ marginBottom: '16px' }}>
-            Delivery Actions
-          </h2>
-
-          {!isCompleted ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                Current status is <strong>{delivery.status.replace('_', ' ')}</strong>. You can advance progress, confirm delivery, or document a failure.
-              </p>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  className="btn-action primary"
-                  style={{ flex: 1, minHeight: '44px', justifyContent: 'center' }}
-                  onClick={() => setActionType('ADVANCE')}
-                >
-                  Advance Status
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-action"
-                  style={{
-                    flex: 1,
-                    minHeight: '44px',
-                    justifyContent: 'center',
-                    backgroundColor: '#F0FAF3',
-                    borderColor: '#D6EFE0',
-                    color: '#166534',
-                  }}
-                  onClick={() => setActionType('CONFIRM')}
-                >
-                  <CheckCircleIcon size={16} />
-                  <span>Confirm Delivered</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-action"
-                  style={{
-                    minHeight: '44px',
-                    backgroundColor: '#FEF2F2',
-                    borderColor: '#FCDDD7',
-                    color: '#DC2626',
-                  }}
-                  onClick={() => setActionType('FAIL')}
-                >
-                  <AlertCircleIcon size={16} />
-                  <span>Report Failed</span>
-                </button>
+        {/* Right Column: Evidence or Audit History */}
+        <div className="detail-col">
+          {/* Delivered Proof Card */}
+          {isDelivered && delivery.proof && (
+            <div className="content-card proof-record-card">
+              <div className="proof-header-row">
+                <div className="proof-icon-badge">
+                  <ShieldCheckIcon size={20} color="#059669" />
+                </div>
+                <div>
+                  <h3 className="proof-title">Verified Proof of Delivery</h3>
+                  <span className="proof-sub">Handover confirmed by recipient</span>
+                </div>
               </div>
-
-              {/* Form 1: Advance Status */}
-              {actionType === 'ADVANCE' && (
-                <form
-                  onSubmit={handleAdvanceStatus}
-                  style={{
-                    backgroundColor: '#FAF7F2',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '16px',
-                    marginTop: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                >
-                  <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Advance Parcel Status</h3>
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      Next Status:
-                    </label>
-                    <select
-                      value={nextStatus}
-                      onChange={(e) => setNextStatus(e.target.value as ParcelStatus)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border)',
-                        background: '#FFFFFF',
-                        fontSize: '13.5px',
-                      }}
-                    >
-                      {getPermittedNextStatuses(delivery?.status).map((st) => (
-                        <option key={st} value={st}>
-                          {st.replace(/_/g, ' ')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                      Status Notes (Optional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Dispatched from sorting center"
-                      value={actionNotes}
-                      onChange={(e) => setActionNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border)',
-                        fontSize: '13.5px',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn-action"
-                      onClick={() => setActionType('NONE')}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="btn-action primary"
-                    >
-                      {submitting ? 'Saving...' : 'Save Status Update'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Form 2: Confirm Delivered */}
-              {actionType === 'CONFIRM' && (
-                <form
-                  onSubmit={handleConfirmDelivery}
-                  style={{
-                    backgroundColor: '#F0FAF3',
-                    border: '1px solid #D6EFE0',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '16px',
-                    marginTop: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                >
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>
-                    Confirm Successful Delivery
-                  </h3>
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#166534', display: 'block', marginBottom: '4px' }}>
-                      Recipient Sign Name *:
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Name of person receiving the package"
-                      value={signName}
-                      onChange={(e) => setSignName(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #D6EFE0',
-                        fontSize: '13.5px',
-                        background: '#FFFFFF',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#166534', display: 'block', marginBottom: '4px' }}>
-                      Delivery Note (Optional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Handed over at front door"
-                      value={actionNotes}
-                      onChange={(e) => setActionNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #D6EFE0',
-                        fontSize: '13.5px',
-                        background: '#FFFFFF',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn-action"
-                      onClick={() => setActionType('NONE')}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="btn-action"
-                      style={{ backgroundColor: '#22A04A', color: 'white', borderColor: '#22A04A' }}
-                    >
-                      {submitting ? 'Confirming...' : 'Confirm Delivery'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Form 3: Report Failure */}
-              {actionType === 'FAIL' && (
-                <form
-                  onSubmit={handleReportFailure}
-                  style={{
-                    backgroundColor: '#FEF2F2',
-                    border: '1px solid #FCDDD7',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: '16px',
-                    marginTop: '12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                  }}
-                >
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#DC2626' }}>
-                    Report Delivery Failure
-                  </h3>
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#991B1B', display: 'block', marginBottom: '4px' }}>
-                      Failure Reason *:
-                    </label>
-                    <select
-                      value={failureReason}
-                      onChange={(e) => setFailureReason(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #FCDDD7',
-                        background: '#FFFFFF',
-                        fontSize: '13.5px',
-                      }}
-                    >
-                      <option value="RECIPIENT_UNAVAILABLE">Recipient Unavailable / Phone Unreachable</option>
-                      <option value="INCORRECT_ADDRESS">Incorrect Delivery Address</option>
-                      <option value="CUSTOMER_REJECTED">Customer Refused Package</option>
-                      <option value="DAMAGED_PARCEL">Damaged Parcel Packaging</option>
-                      <option value="ACCESS_RESTRICTED">Premises Access Restricted / Gate Locked</option>
-                      <option value="WEATHER_DELAY">Severe Weather / Road Blockage</option>
-                      <option value="OTHER">Other Reason</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#991B1B', display: 'block', marginBottom: '4px' }}>
-                      Detailed Remarks *:
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Explain the specific reason why this delivery could not be completed..."
-                      value={actionNotes}
-                      onChange={(e) => setActionNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        border: '1px solid #FCDDD7',
-                        fontSize: '13.5px',
-                        fontFamily: 'inherit',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn-action"
-                      onClick={() => setActionType('NONE')}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="btn-action"
-                      style={{ backgroundColor: '#DC2626', color: 'white', borderColor: '#DC2626' }}
-                    >
-                      {submitting ? 'Submitting...' : 'Submit Failure Report'}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {isDelivered && (
-                <div style={{ backgroundColor: '#F0FAF3', padding: '16px', borderRadius: 'var(--radius-lg)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 700 }}>
-                    <CheckCircleIcon size={18} />
-                    <span>Delivered & Verified</span>
-                  </div>
-                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#14532D' }}>
-                    <p><strong>Signed by:</strong> {delivery.proof?.recipientSignName || delivery.recipientName}</p>
-                    {delivery.proof?.deliveryNotes && <p style={{ marginTop: '4px' }}><strong>Note:</strong> {delivery.proof.deliveryNotes}</p>}
-                    <p style={{ marginTop: '4px', fontSize: '12px', color: '#166534' }}>
-                      Captured on: {delivery.proof?.capturedAt || 'Today'}
-                    </p>
-                  </div>
+              <div className="proof-body-grid">
+                <div>
+                  <span className="proof-field-label">Signee Name:</span>
+                  <span className="proof-field-val">{delivery.proof.recipientSignName}</span>
                 </div>
-              )}
-
-              {isFailed && (
-                <div style={{ backgroundColor: '#FEF2F2', padding: '16px', borderRadius: 'var(--radius-lg)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#DC2626', fontWeight: 700 }}>
-                    <AlertCircleIcon size={18} />
-                    <span>Delivery Attempt Failed</span>
-                  </div>
-                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#991B1B' }}>
-                    <p><strong>Reason:</strong> {delivery.failure?.failureReason.replace('_', ' ')}</p>
-                    <p style={{ marginTop: '4px' }}><strong>Remarks:</strong> {delivery.failure?.failureRemarks}</p>
-                  </div>
+                <div>
+                  <span className="proof-field-label">Verification Type:</span>
+                  <span className="proof-field-val">{delivery.proof.proofType}</span>
                 </div>
-              )}
+                {delivery.proof.deliveryNotes && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span className="proof-field-label">Courier Remarks:</span>
+                    <span className="proof-field-val">{delivery.proof.deliveryNotes}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          {/* Failed Delivery Incident Card */}
+          {isFailed && delivery.failure && (
+            <div className="content-card failure-incident-card">
+              <div className="failure-header-row">
+                <div className="failure-icon-badge">
+                  <AlertCircleIcon size={20} color="#DC2626" />
+                </div>
+                <div>
+                  <h3 className="failure-title">Delivery Failure Logged</h3>
+                  <span className="failure-sub">Issue flagged for dispatch re-routing</span>
+                </div>
+              </div>
+              <div className="failure-body-content">
+                <div className="failure-reason-pill">
+                  Reason: <strong>{delivery.failure.failureReason.replace(/_/g, ' ')}</strong>
+                </div>
+                <p className="failure-remarks-text">"{delivery.failure.failureRemarks}"</p>
+                <span className="failure-time-text">Logged on: {delivery.failure.reportedAt || 'Today'}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Status Audit History Card */}
+          <div className="content-card status-audit-card">
+            <h2 className="card-title">Status Audit Trail</h2>
+            {delivery.statusHistory.length === 0 ? (
+              <p className="audit-empty-text">No lifecycle status events recorded yet.</p>
+            ) : (
+              <div className="timeline-list audit-timeline">
+                {delivery.statusHistory.map((item) => (
+                  <div key={item.id} className="timeline-item">
+                    <div className="timeline-icon-badge timeline-gold">
+                      <ClockIcon size={14} color="#181B20" />
+                    </div>
+                    <div className="timeline-content">
+                      <div className="audit-step-title">
+                        {item.fromStatus ? (
+                          <>
+                            <span className="audit-prev-status">{item.fromStatus}</span>
+                            <span className="audit-arrow">→</span>
+                          </>
+                        ) : null}
+                        <span className="audit-next-status">{item.toStatus}</span>
+                      </div>
+                      <span className="timeline-sub">
+                        By {item.changedBy} • {item.timestamp}
+                      </span>
+                      {item.notes && <p className="audit-notes-box">{item.notes}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Card 3: Status Audit History */}
-      <div className="content-card" style={{ marginTop: '20px' }}>
-        <h2 className="card-title" style={{ marginBottom: '16px' }}>
-          Status Audit History
-        </h2>
+      {/* Modern Modal Dialogs */}
 
-        {delivery.statusHistory.length === 0 ? (
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No previous status changes logged.</p>
-        ) : (
-          <div className="timeline-list">
-            {delivery.statusHistory.map((item) => (
-              <div key={item.id} className="timeline-item">
-                <div className="timeline-icon-badge gold">
-                  <ClockIcon size={16} color="#1F1712" />
-                </div>
-                <div className="timeline-content">
-                  <span className="timeline-title">
-                    {item.fromStatus ? `${item.fromStatus} → ` : ''}{item.toStatus}
-                  </span>
-                  <span className="timeline-sub">
-                    By {item.changedBy} • {item.timestamp}
-                  </span>
-                  {item.notes && (
-                    <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                      {item.notes}
-                    </p>
-                  )}
-                </div>
+      {/* Modal 1: Advance Status */}
+      {actionType === 'ADVANCE' && (
+        <div className="modal-backdrop" onClick={() => setActionType('NONE')}>
+          <div className="modal-window" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Advance Parcel Status</h3>
+                <span className="modal-subtitle">Transition delivery along the verified lifecycle graph</span>
               </div>
-            ))}
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setActionType('NONE')}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleAdvanceStatus} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">Next Operational Status *</label>
+                <select
+                  value={nextStatus}
+                  onChange={(e) => setNextStatus(e.target.value as ParcelStatus)}
+                  className="form-select"
+                >
+                  {getPermittedNextStatuses(delivery?.status).map((st) => (
+                    <option key={st} value={st}>
+                      {st.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Status Notes / Location (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Arrived at Colombo 03 distribution hub"
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="modal-actions-footer">
+                <button
+                  type="button"
+                  className="btn-action secondary"
+                  onClick={() => setActionType('NONE')}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-action primary"
+                >
+                  {submitting ? 'Saving Progress...' : 'Confirm Status Transition'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Modal 2: Confirm Delivered with Proof */}
+      {actionType === 'CONFIRM' && (
+        <div className="modal-backdrop" onClick={() => setActionType('NONE')}>
+          <div className="modal-window modal-window-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-icon-wrap green">
+                <CheckCircleIcon size={22} color="#059669" />
+              </div>
+              <div>
+                <h3 className="modal-title">Confirm Delivery</h3>
+                <span className="modal-subtitle">Capture recipient signature name and finalize handover</span>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setActionType('NONE')}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleConfirmDelivery} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">Recipient Full Name (Signee) *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter the name of the individual who accepted the package"
+                  value={signName}
+                  onChange={(e) => setSignName(e.target.value)}
+                  className="form-input"
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Delivery Notes (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Left with building reception at front desk"
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="modal-actions-footer">
+                <button
+                  type="button"
+                  className="btn-action secondary"
+                  onClick={() => setActionType('NONE')}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-action btn-confirm-submit"
+                >
+                  {submitting ? 'Verifying & Saving...' : 'Confirm & Complete Delivery'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Report Delivery Failure */}
+      {actionType === 'FAIL' && (
+        <div className="modal-backdrop" onClick={() => setActionType('NONE')}>
+          <div className="modal-window modal-window-fail" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-icon-wrap red">
+                <AlertCircleIcon size={22} color="#DC2626" />
+              </div>
+              <div>
+                <h3 className="modal-title">Report Delivery Failure</h3>
+                <span className="modal-subtitle">Document attempt failure reason for dispatcher audit</span>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setActionType('NONE')}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleReportFailure} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">Primary Failure Reason *</label>
+                <select
+                  value={failureReason}
+                  onChange={(e) => setFailureReason(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="RECIPIENT_UNAVAILABLE">Recipient Unavailable / Phone Unreachable</option>
+                  <option value="INCORRECT_ADDRESS">Incorrect Delivery Address</option>
+                  <option value="CUSTOMER_REJECTED">Customer Refused Package</option>
+                  <option value="DAMAGED_PARCEL">Damaged Parcel Packaging</option>
+                  <option value="ACCESS_RESTRICTED">Premises Access Restricted / Gate Locked</option>
+                  <option value="WEATHER_DELAY">Severe Weather / Road Blockage</option>
+                  <option value="OTHER">Other Operational Issue</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Detailed Incident Remarks *</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Detail attempts made (e.g. called customer twice at 14:10, premise locked, no answer at front gate)..."
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  className="form-textarea"
+                />
+              </div>
+
+              <div className="modal-actions-footer">
+                <button
+                  type="button"
+                  className="btn-action secondary"
+                  onClick={() => setActionType('NONE')}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-action btn-fail-submit"
+                >
+                  {submitting ? 'Submitting Report...' : 'Log Failure & Notify Dispatch'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

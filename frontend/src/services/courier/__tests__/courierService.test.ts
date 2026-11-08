@@ -103,6 +103,20 @@ test('HttpCourierDataServiceImpl - Proper error handling and 404 behavior', asyn
   );
 });
 
+test('MockCourierDataServiceImpl - Retrieves and updates courier profile', async () => {
+  const service = new MockCourierDataServiceImpl();
+  const profile = await service.getCourierProfile();
+  assert.ok(profile.id);
+  assert.ok(profile.fullName);
+
+  const updated = await service.updateCourierProfile({
+    phoneNumber: '+94 77 999 8888',
+    vehicleType: 'Electric Scooter',
+  });
+  assert.equal(updated.phoneNumber, '+94 77 999 8888');
+  assert.equal(updated.vehicleType, 'Electric Scooter');
+});
+
 test('ApiError - Preserves HTTP status and validation field errors', () => {
   const error = new ApiError(400, 'Validation failed', {
     nextStatus: 'Cannot transition from DELIVERED to IN_TRANSIT',

@@ -10,6 +10,7 @@ import {
   BellIcon,
   UserIcon,
   LogoutIcon,
+  ShieldCheckIcon,
 } from '../common/Icons';
 
 export const DesktopSidebar: React.FC = () => {
@@ -21,31 +22,38 @@ export const DesktopSidebar: React.FC = () => {
     }
     window.location.href = '/';
   };
+
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" aria-label="Main Navigation">
       {/* Brand Header */}
       <div className="brand-header">
         <div className="brand-logo-icon">
-          <LogoParcelIcon size={22} color="#1F1712" />
+          <LogoParcelIcon size={22} color="#181B20" />
         </div>
-        <span className="brand-title">SwiftDrop</span>
+        <div className="brand-title-wrap">
+          <span className="brand-title">SwiftDrop</span>
+          <span className="brand-subtitle">FLEET LOGISTICS</span>
+        </div>
       </div>
 
-      {/* Courier Portal Pill */}
+      {/* Courier Portal Status Badge */}
       <div className="portal-pill">
-        <TruckIcon size={17} color="#241913" />
-        <span>Courier Portal</span>
+        <div className="portal-pill-left">
+          <TruckIcon size={16} color="var(--primary-active)" />
+          <span>Courier Portal</span>
+        </div>
+        <span className="portal-live-dot" title="Operational Connection Active" />
       </div>
 
       {/* Navigation Links */}
-      <nav>
+      <nav className="sidebar-nav">
         <ul className="nav-list">
           <li>
             <NavLink
               to="/courier/dashboard"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <HomeIcon size={19} />
+              <HomeIcon size={18} className="nav-icon" />
               <span>Dashboard</span>
             </NavLink>
           </li>
@@ -54,7 +62,7 @@ export const DesktopSidebar: React.FC = () => {
               to="/courier/deliveries"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <PackageIcon size={19} />
+              <PackageIcon size={18} className="nav-icon" />
               <span>My Deliveries</span>
             </NavLink>
           </li>
@@ -63,7 +71,7 @@ export const DesktopSidebar: React.FC = () => {
               to="/courier/history"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <ClockIcon size={19} />
+              <ClockIcon size={18} className="nav-icon" />
               <span>History</span>
             </NavLink>
           </li>
@@ -72,7 +80,7 @@ export const DesktopSidebar: React.FC = () => {
               to="/courier/notifications"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <BellIcon size={19} />
+              <BellIcon size={18} className="nav-icon" />
               <span>Notifications</span>
             </NavLink>
           </li>
@@ -81,41 +89,35 @@ export const DesktopSidebar: React.FC = () => {
               to="/courier/profile"
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
-              <UserIcon size={19} />
+              <UserIcon size={18} className="nav-icon" />
               <span>Profile</span>
             </NavLink>
           </li>
-
-          <li className="sidebar-divider"></li>
-
-          <li>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="nav-item"
-              style={{
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontFamily: 'inherit',
-                fontSize: '13.5px',
-                color: '#8A827B',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-md)',
-              }}
-              title="Log out of Courier Portal"
-            >
-              <LogoutIcon size={19} color="#8A827B" />
-              <span>Log Out</span>
-            </button>
-          </li>
         </ul>
       </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-courier-card">
+          <div className="courier-avatar-mini">SM</div>
+          <div className="courier-card-details">
+            <span className="courier-card-name">Sachin M.</span>
+            <span className="courier-card-badge">
+              <ShieldCheckIcon size={12} color="#10B981" />
+              Verified Driver
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="sidebar-logout-btn"
+          title="Sign out of Courier Portal"
+        >
+          <LogoutIcon size={17} />
+          <span>Sign Out</span>
+        </button>
+      </div>
     </aside>
   );
 };

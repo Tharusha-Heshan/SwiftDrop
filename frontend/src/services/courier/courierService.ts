@@ -297,6 +297,29 @@ export class HttpCourierDataServiceImpl implements CourierDataService {
     };
   }
 
+  async updateCourierProfile(request: {
+    phoneNumber?: string;
+    vehicleType?: string;
+  }): Promise<CourierProfile> {
+    const res = await this.request<BackendProfileResponse>('/api/couriers/me/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        phoneNumber: request.phoneNumber,
+        vehicleType: request.vehicleType,
+      }),
+    });
+    return {
+      id: res.userId,
+      fullName: res.fullName || 'Courier Personnel',
+      email: res.email || '',
+      phoneNumber: res.phoneNumber || '',
+      vehicleType: res.vehicleType || 'Motorcycle',
+      assignedZone: res.assignedZone || 'Assigned Zone',
+      isActive: res.isActive ?? true,
+      avatarUrl: res.avatarUrl,
+    };
+  }
+
   async getRecentUpdates(): Promise<ActivityUpdate[]> {
     const params = new URLSearchParams({ page: '0', size: '10' });
     const res = await this.request<BackendPageResponse<BackendDeliverySummary>>(
@@ -477,6 +500,20 @@ export class MockCourierDataServiceImpl implements CourierDataService {
 
   async getCourierProfile(): Promise<CourierProfile> {
     await this.delay();
+    return { ...this.profile };
+  }
+
+  async updateCourierProfile(request: {
+    phoneNumber?: string;
+    vehicleType?: string;
+  }): Promise<CourierProfile> {
+    await this.delay();
+    if (request.phoneNumber !== undefined) {
+      this.profile.phoneNumber = request.phoneNumber;
+    }
+    if (request.vehicleType !== undefined) {
+      this.profile.vehicleType = request.vehicleType;
+    }
     return { ...this.profile };
   }
 

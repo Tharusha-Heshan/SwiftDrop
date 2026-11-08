@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BellIcon } from '../common/Icons';
+import { BellIcon, ShieldCheckIcon } from '../common/Icons';
 
 interface TopHeaderProps {
   title?: string;
@@ -17,10 +17,24 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const initials = courierName
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'CO';
+
   return (
     <header className="top-header">
       <div className="header-left">
-        <h1>{title}</h1>
+        <div className="header-title-row">
+          <h1>{title}</h1>
+          <div className="header-status-pill" title="Live Courier Dispatch Status">
+            <span className="live-status-dot" />
+            <span className="live-status-text">ON SHIFT</span>
+          </div>
+        </div>
         <p>{subtitle}</p>
       </div>
 
@@ -28,11 +42,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Notification Bell */}
         <button
           type="button"
-          className="icon-btn"
-          aria-label="Notifications"
+          className="icon-btn header-notification-btn"
+          aria-label="View Notifications"
+          title="Notifications"
           onClick={() => navigate('/courier/notifications')}
         >
-          <BellIcon size={20} color="#241913" />
+          <BellIcon size={19} color="var(--text-primary)" />
           <span className="notification-badge-dot" />
         </button>
 
@@ -41,12 +56,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           className="profile-chip"
           role="button"
           tabIndex={0}
+          title="View Courier Profile"
           onClick={() => navigate('/courier/profile')}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/courier/profile')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate('/courier/profile')}
         >
-          <div className="avatar">SM</div>
+          <div className="avatar">
+            {initials}
+          </div>
           <div className="profile-info">
-            <span className="profile-name">{courierName}</span>
+            <span className="profile-name">
+              {courierName}
+              <ShieldCheckIcon size={13} color="#10B981" />
+            </span>
             <span className="profile-role">{courierZone}</span>
           </div>
         </div>

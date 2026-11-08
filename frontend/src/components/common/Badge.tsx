@@ -3,10 +3,11 @@ import type { ParcelStatus } from '../../types/courier';
 interface BadgeProps {
   status: ParcelStatus | string;
   className?: string;
+  size?: 'sm' | 'md';
 }
 
-export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) => {
-  const normalized = status.toUpperCase();
+export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '', size = 'md' }) => {
+  const normalized = (status || '').toUpperCase();
 
   let label: string;
   let modifierClass: string;
@@ -14,7 +15,7 @@ export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) =>
   switch (normalized) {
     case 'PENDING':
     case 'CONFIRMED':
-      modifierClass = 'created';
+      modifierClass = 'pending';
       label = normalized === 'CONFIRMED' ? 'Confirmed' : 'Pending';
       break;
     case 'PICKED_UP':
@@ -38,17 +39,18 @@ export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) =>
       label = 'Failed';
       break;
     case 'CANCELLED':
-      modifierClass = 'failed';
+      modifierClass = 'cancelled';
       label = 'Cancelled';
       break;
     default:
       modifierClass = 'pending';
-      label = status;
+      label = status || 'Unknown';
   }
 
   return (
-    <span className={`status-badge ${modifierClass} ${className}`}>
-      {label}
+    <span className={`status-badge ${modifierClass} ${size === 'sm' ? 'status-badge-sm' : ''} ${className}`}>
+      <span className="status-badge-dot" />
+      <span className="status-badge-label">{label}</span>
     </span>
   );
 };

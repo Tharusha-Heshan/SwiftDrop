@@ -7,7 +7,7 @@ interface IconProps {
   style?: React.CSSProperties;
 }
 
-export const LogoParcelIcon: React.FC<IconProps> = ({ size = 22, color = '#241913', className, style }) => (
+export const LogoParcelIcon: React.FC<IconProps> = ({ size = 22, color = '#181B20', className, style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
     <path d="m7.5 4.27 9 5.15" />
     <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
@@ -77,6 +77,12 @@ export const CheckCircleIcon: React.FC<IconProps> = ({ size = 20, color = 'curre
   </svg>
 );
 
+export const CheckIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 export const AlertCircleIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <circle cx="12" cy="12" r="10" />
@@ -120,6 +126,33 @@ export const ArrowLeftIcon: React.FC<IconProps> = ({ size = 18, color = 'current
   </svg>
 );
 
+export const ArrowRightIcon: React.FC<IconProps> = ({ size = 18, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
+export const ChevronRightIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+export const CopyIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+  </svg>
+);
+
+export const ShieldCheckIcon: React.FC<IconProps> = ({ size = 18, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
 export const PhoneIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
@@ -135,30 +168,87 @@ export const CalendarIcon: React.FC<IconProps> = ({ size = 16, color = 'currentC
   </svg>
 );
 
+export const FilterIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
+
+export const SparklesIcon: React.FC<IconProps> = ({ size = 18, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+  </svg>
+);
+
+export const RouteIcon: React.FC<IconProps> = ({ size = 18, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="6" cy="19" r="3" />
+    <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+    <circle cx="18" cy="5" r="3" />
+  </svg>
+);
+
+export const RefreshIcon: React.FC<IconProps> = ({ size = 16, color = 'currentColor', className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    <path d="M3 21v-5h5" />
+  </svg>
+);
+
 export const ParcelHeroGraphic: React.FC = () => (
-  <svg width="180" height="110" viewBox="0 0 180 110" fill="none">
-    {/* Decorative soft backdrop glow */}
-    <ellipse cx="90" cy="88" rx="65" ry="14" fill="#F4E8D1" fillOpacity="0.6" />
-    
-    {/* 3D Isometric Cardboard Box */}
-    {/* Top Face */}
-    <polygon points="90,26 138,48 90,70 42,48" fill="#E8C68A" />
-    {/* Right Face (illuminated) */}
-    <polygon points="138,48 138,86 90,108 90,70" fill="#D4AC66" />
-    {/* Left Face (shadow) */}
-    <polygon points="42,48 90,70 90,108 42,86" fill="#BF954B" />
+  <svg width="220" height="130" viewBox="0 0 220 130" fill="none" className="hero-svg-illustration">
+    <defs>
+      <linearGradient id="boxTop" x1="50" y1="20" x2="160" y2="70" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#F9D479" />
+        <stop offset="1" stopColor="#EAB340" />
+      </linearGradient>
+      <linearGradient id="boxRight" x1="110" y1="65" x2="175" y2="120" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#D9961A" />
+        <stop offset="1" stopColor="#B3780D" />
+      </linearGradient>
+      <linearGradient id="boxLeft" x1="45" y1="65" x2="110" y2="120" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#C48817" />
+        <stop offset="1" stopColor="#996405" />
+      </linearGradient>
+      <linearGradient id="glowGrad" x1="30" y1="100" x2="190" y2="115" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#F4B942" stopOpacity="0.45" />
+        <stop offset="1" stopColor="#F4B942" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor="#10B981" />
+        <stop offset="1" stopColor="#059669" />
+      </linearGradient>
+    </defs>
 
-    {/* Box Packaging Tape */}
-    <polygon points="90,26 102,31.5 66,70 54,64.5" fill="#FFF9EB" fillOpacity="0.8" />
-    <polygon points="90,70 102,75.5 102,102 90,96.5" fill="#FFF4D6" fillOpacity="0.8" />
+    {/* Soft ground shadow & gold glow */}
+    <ellipse cx="110" cy="108" rx="82" ry="16" fill="url(#glowGrad)" />
 
-    {/* Location Pin 1 */}
-    <g transform="translate(18, 22)">
-      <circle cx="8" cy="8" r="8" fill="#F4B942" />
-      <circle cx="8" cy="8" r="3.5" fill="#FFFFFF" />
+    {/* Isometric Box Main Faces */}
+    <polygon points="110,24 172,52 110,80 48,52" fill="url(#boxTop)" />
+    <polygon points="172,52 172,98 110,126 110,80" fill="url(#boxRight)" />
+    <polygon points="48,52 110,80 110,126 48,98" fill="url(#boxLeft)" />
+
+    {/* Premium Packaging Tape Ribbons */}
+    <polygon points="110,24 124,30.5 82,80 68,73.5" fill="#FFFDF5" fillOpacity="0.88" />
+    <polygon points="110,80 124,86.5 124,120 110,113.5" fill="#FFF8E0" fillOpacity="0.88" />
+
+    {/* SwiftDrop Brand Arrow on Box */}
+    <path d="M125 90 L145 80 L145 92" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.8" />
+
+    {/* Floating Live Delivery Badge */}
+    <g transform="translate(148, 12)">
+      <rect width="60" height="26" rx="13" fill="#181B20" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.15))" />
+      <circle cx="14" cy="13" r="4.5" fill="#10B981" />
+      <text x="24" y="17" fill="#FFFFFF" fontSize="10.5" fontWeight="700" fontFamily="system-ui, sans-serif" letterSpacing="0.4">EXPRESS</text>
     </g>
 
-    {/* Dotted Delivery Route Path */}
-    <path d="M26 30 C 50 15, 60 45, 82 34" stroke="#D9A838" strokeWidth="2.5" strokeDasharray="4 4" strokeLinecap="round" />
+    {/* Route Pin & Dotted Line */}
+    <g transform="translate(16, 26)">
+      <circle cx="10" cy="10" r="10" fill="#F4B942" filter="drop-shadow(0 3px 6px rgba(244,185,66,0.4))" />
+      <circle cx="10" cy="10" r="4" fill="#181B20" />
+    </g>
+    <path d="M26 36 C 45 16, 68 56, 96 38" stroke="#F4B942" strokeWidth="2.4" strokeDasharray="4 4" strokeLinecap="round" opacity="0.9" />
   </svg>
 );

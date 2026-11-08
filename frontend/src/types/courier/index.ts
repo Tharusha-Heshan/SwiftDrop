@@ -22,7 +22,7 @@ export type FailureReason =
   | 'WEATHER_DELAY'
   | 'OTHER';
 
-export type StatusFilterOption = 'ALL' | 'PENDING' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
+export type StatusFilterOption = 'ALL' | ParcelStatus;
 
 export interface DeliverySummary {
   id: string;
@@ -123,6 +123,7 @@ export interface CourierDataService {
   getDeliveryDetails(trackingNumber: string): Promise<DeliveryDetails | null>;
   getDeliveryHistory(): Promise<DeliverySummary[]>;
   getCourierProfile(): Promise<CourierProfile>;
+  updateCourierProfile(request: { phoneNumber?: string; vehicleType?: string }): Promise<CourierProfile>;
   getRecentUpdates(): Promise<ActivityUpdate[]>;
   updateDeliveryStatus(trackingNumber: string, request: StatusUpdateRequest): Promise<DeliveryDetails>;
   confirmDelivery(trackingNumber: string, request: DeliveryConfirmationRequest): Promise<DeliveryDetails>;
