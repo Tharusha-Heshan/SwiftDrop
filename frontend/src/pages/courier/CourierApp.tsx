@@ -1,17 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { CourierLayout } from './components/layout/CourierLayout';
-import { DashboardPage } from './pages/courier/DashboardPage';
-import { MyDeliveriesPage } from './pages/courier/MyDeliveriesPage';
-import { DeliveryDetailPage } from './pages/courier/DeliveryDetailPage';
-import { HistoryPage } from './pages/courier/HistoryPage';
-import { NotificationsPage } from './pages/courier/NotificationsPage';
-import { ProfilePage } from './pages/courier/ProfilePage';
+import { CourierLayout } from '../../components/layout/CourierLayout';
+import { DashboardPage } from './DashboardPage';
+import { MyDeliveriesPage } from './MyDeliveriesPage';
+import { DeliveryDetailPage } from './DeliveryDetailPage';
+import { HistoryPage } from './HistoryPage';
+import { NotificationsPage } from './NotificationsPage';
+import { ProfilePage } from './ProfilePage';
+import '../../styles/courier/variables.css';
+import '../../styles/courier/courier.css';
 
-function App() {
+export function CourierApp() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Development root redirects to Courier Portal */}
         <Route path="/" element={<Navigate to="/courier/dashboard" replace />} />
         <Route path="/courier" element={<Navigate to="/courier/dashboard" replace />} />
 
@@ -25,11 +26,11 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
         </Route>
 
-        {/* Catch-all route */}
+        {/* Catch-all route within courier */}
         <Route path="*" element={<Navigate to="/courier/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-export default App;
+export default CourierApp;
