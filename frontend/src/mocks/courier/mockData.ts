@@ -26,7 +26,7 @@ export const initialMockDeliveries: DeliveryDetails[] = [
     statusHistory: [
       {
         id: 'h1',
-        fromStatus: 'CREATED',
+        fromStatus: 'PENDING',
         toStatus: 'PICKED_UP',
         changedBy: 'Sachin Maleesha',
         timestamp: 'Today, 08:15 AM',
@@ -49,7 +49,7 @@ export const initialMockDeliveries: DeliveryDetails[] = [
     statusHistory: [
       {
         id: 'h2-1',
-        fromStatus: 'CREATED',
+        fromStatus: 'PENDING',
         toStatus: 'PICKED_UP',
         changedBy: 'Sachin Maleesha',
         timestamp: 'Today, 08:30 AM',

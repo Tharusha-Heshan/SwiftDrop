@@ -61,12 +61,16 @@ public class CourierController {
      */
     @GetMapping("/deliveries")
     public PageResponse<CourierDeliverySummaryResponse> getAssignedDeliveries(
-            @RequestParam(required = false) DeliveryStatus status,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal Jwt user) {
-        return courierService.getAssignedDeliveries(CurrentUser.id(user), status, search, PageRequest.of(page, size));
+        DeliveryStatus parsedStatus = null;
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
+            parsedStatus = DeliveryStatus.valueOf(status.trim().toUpperCase());
+        }
+        return courierService.getAssignedDeliveries(CurrentUser.id(user), parsedStatus, search, PageRequest.of(page, size));
     }
 
     /**

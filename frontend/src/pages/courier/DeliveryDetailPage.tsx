@@ -13,6 +13,24 @@ import {
 import { courierService } from '../../services/courier/courierService';
 import type { DeliveryDetails, ParcelStatus } from '../../types/courier';
 
+function getPermittedNextStatuses(current?: ParcelStatus): ParcelStatus[] {
+  switch (current) {
+    case 'PENDING':
+    case 'CONFIRMED':
+      return ['PICKED_UP'];
+    case 'PICKED_UP':
+      return ['IN_TRANSIT'];
+    case 'IN_TRANSIT':
+      return ['OUT_FOR_DELIVERY'];
+    case 'OUT_FOR_DELIVERY':
+      return ['IN_TRANSIT'];
+    case 'FAILED':
+      return ['OUT_FOR_DELIVERY', 'IN_TRANSIT'];
+    default:
+      return ['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'];
+  }
+}
+
 export const DeliveryDetailPage: React.FC = () => {
   const { trackingNumber } = useParams<{ trackingNumber: string }>();
   const navigate = useNavigate();
@@ -45,11 +63,17 @@ export const DeliveryDetailPage: React.FC = () => {
             setError(`Parcel with tracking number "${trackingNumber}" was not found.`);
           } else {
             setDelivery(data);
-            // Default next status
-            if (data.status === 'CREATED' || data.status === 'PICKED_UP') {
+            // Default next status based on permitted lifecycle transitions
+            if (data.status === 'PENDING' || data.status === 'CONFIRMED') {
+              setNextStatus('PICKED_UP');
+            } else if (data.status === 'PICKED_UP') {
               setNextStatus('IN_TRANSIT');
             } else if (data.status === 'IN_TRANSIT') {
               setNextStatus('OUT_FOR_DELIVERY');
+            } else if (data.status === 'FAILED') {
+              setNextStatus('OUT_FOR_DELIVERY');
+            } else if (data.status === 'OUT_FOR_DELIVERY') {
+              setNextStatus('IN_TRANSIT');
             }
           }
         }
@@ -423,9 +447,11 @@ export const DeliveryDetailPage: React.FC = () => {
                         fontSize: '13.5px',
                       }}
                     >
-                      <option value="PICKED_UP">PICKED_UP</option>
-                      <option value="IN_TRANSIT">IN_TRANSIT</option>
-                      <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
+                      {getPermittedNextStatuses(delivery?.status).map((st) => (
+                        <option key={st} value={st}>
+                          {st.replace(/_/g, ' ')}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -585,6 +611,7 @@ export const DeliveryDetailPage: React.FC = () => {
                       <option value="CUSTOMER_REJECTED">Customer Refused Package</option>
                       <option value="DAMAGED_PARCEL">Damaged Parcel Packaging</option>
                       <option value="ACCESS_RESTRICTED">Premises Access Restricted / Gate Locked</option>
+                      <option value="WEATHER_DELAY">Severe Weather / Road Blockage</option>
                       <option value="OTHER">Other Reason</option>
                     </select>
                   </div>

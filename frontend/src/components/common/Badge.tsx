@@ -12,7 +12,6 @@ export const StatusBadge: React.FC<BadgeProps> = ({ status, className = '' }) =>
   let modifierClass: string;
 
   switch (normalized) {
-    case 'CREATED':
     case 'PENDING':
     case 'CONFIRMED':
       modifierClass = 'created';

@@ -4,7 +4,6 @@
  */
 
 export type ParcelStatus = 
-  | 'CREATED'
   | 'PENDING'
   | 'CONFIRMED'
   | 'PICKED_UP'
@@ -13,6 +12,15 @@ export type ParcelStatus =
   | 'DELIVERED'
   | 'FAILED'
   | 'CANCELLED';
+
+export type FailureReason =
+  | 'RECIPIENT_UNAVAILABLE'
+  | 'INCORRECT_ADDRESS'
+  | 'CUSTOMER_REJECTED'
+  | 'DAMAGED_PARCEL'
+  | 'ACCESS_RESTRICTED'
+  | 'WEATHER_DELAY'
+  | 'OTHER';
 
 export type StatusFilterOption = 'ALL' | 'PENDING' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED';
 
@@ -104,7 +112,7 @@ export interface DeliveryConfirmationRequest {
 }
 
 export interface DeliveryFailureRequest {
-  failureReason: string;
+  failureReason: FailureReason | string;
   failureRemarks: string;
   location?: string;
 }
