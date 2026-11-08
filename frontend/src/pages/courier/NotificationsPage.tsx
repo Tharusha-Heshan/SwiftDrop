@@ -89,6 +89,9 @@ export const NotificationsPage: React.FC = () => {
                     <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
                       {n.title}
                     </span>
+                    <span style={{ fontSize: '10px', backgroundColor: '#FEF3C7', color: '#92400E', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                      SIMULATION
+                    </span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{n.time}</span>
                   </div>
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>

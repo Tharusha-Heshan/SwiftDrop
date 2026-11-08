@@ -79,13 +79,55 @@ public class CourierService {
     }
 
     /**
-     * Provisions or updates a CourierProfile for the authenticated user.
-     * Enforces role requirements and inactive user validation.
-     * Setting assigned delivery zone or active eligibility requires DISPATCHER or ADMIN authority.
-     * Couriers updating their own profile may only update contact phone number.
-     * Idempotent: avoids creating duplicate profiles for the same user.
+     * Derives whether the currently authenticated caller possesses Dispatcher or Administrator authority.
+     * Evaluated securely against the active Spring SecurityContextHolder.
      */
-    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request, boolean isDispatcherOrAdmin) {
+    private boolean isDispatcherOrAdminCaller() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .anyMatch(a -> "ROLE_DISPATCHER".equalsIgnoreCase(a)
+                        || "ROLE_ADMIN".equalsIgnoreCase(a)
+                        || "delivery:assign".equalsIgnoreCase(a));
+    }
+
+    /**
+     * Self-service profile update for couriers.
+     * Enforces that couriers may update only approved personal profile fields (phone number, vehicle type).
+     * Attempts to self-assign operational delivery zones or toggle active dispatch eligibility are strictly rejected
+     * unless the authenticated caller possesses Dispatcher or Administrator authority.
+     */
+    public CourierProfileResponse updateOwnProfile(UUID courierId, CourierProfileProvisionRequest request) {
+        boolean isDispatcherOrAdmin = isDispatcherOrAdminCaller();
+        return doProvisionOrUpdateProfile(courierId, request, isDispatcherOrAdmin);
+    }
+
+    /**
+     * Dispatcher and Administrator operational profile provisioning.
+     * Dedicated service boundary for assigning operational zones, vehicle assignments, and active eligibility.
+     * Requires DISPATCHER or ADMIN role, or delivery:assign authority.
+     */
+    public CourierProfileResponse provisionOperationalProfile(UUID courierId, CourierProfileProvisionRequest request) {
+        if (!isDispatcherOrAdminCaller()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Operational courier provisioning requires Dispatcher or Administrator authority.");
+        }
+        return doProvisionOrUpdateProfile(courierId, request, true);
+    }
+
+    /**
+     * General profile provisioning method for internal service coordination.
+     * Derives authorization from the verified security context rather than caller-supplied flags.
+     */
+    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request) {
+        boolean isDispatcherOrAdmin = isDispatcherOrAdminCaller();
+        return doProvisionOrUpdateProfile(courierId, request, isDispatcherOrAdmin);
+    }
+
+    private CourierProfileResponse doProvisionOrUpdateProfile(UUID courierId, CourierProfileProvisionRequest request, boolean isDispatcherOrAdmin) {
         AppUser user = userDirectory.require(courierId);
         if (!user.isActive()) {
             throw new IllegalArgumentException("Cannot provision courier profile for inactive user account");
@@ -119,8 +161,8 @@ public class CourierService {
             profile.setActive(active);
         } else {
             profile.setPhoneNumber(request.phoneNumber().trim());
+            profile.setVehicleType(request.vehicleType().trim());
             if (isDispatcherOrAdmin) {
-                profile.setVehicleType(request.vehicleType().trim());
                 if (request.assignedZone() != null && !request.assignedZone().isBlank()) {
                     profile.setAssignedZone(request.assignedZone().trim());
                 }
@@ -139,22 +181,18 @@ public class CourierService {
         return CourierProfileResponse.from(profile, user, email);
     }
 
-    public CourierProfileResponse provisionProfile(UUID courierId, CourierProfileProvisionRequest request) {
-        return provisionProfile(courierId, request, true);
-    }
-
     /**
      * Lists active, eligible couriers optionally filtered by delivery zone.
+     * Excludes inactive users and couriers with "Unassigned" operational zones.
      * Enables Dispatcher assignment workflows and operational routing.
      */
     @Transactional(readOnly = true)
     public List<CourierProfileResponse> getEligibleCouriers(String zone) {
         List<CourierProfile> profiles = (zone != null && !zone.isBlank())
-                ? courierProfiles.findByAssignedZoneIgnoreCaseAndActiveTrue(zone.trim())
-                : courierProfiles.findByActiveTrue();
+                ? courierProfiles.findEligibleCouriersByZone(zone.trim())
+                : courierProfiles.findEligibleCouriers();
 
         return profiles.stream()
-                .filter(p -> p.getUser() != null && p.getUser().isActive() && !"Unassigned".equalsIgnoreCase(p.getAssignedZone()))
                 .map(p -> {
                     String email = null;
                     try {

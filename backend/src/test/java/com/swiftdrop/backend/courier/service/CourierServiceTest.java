@@ -271,5 +271,62 @@ class CourierServiceTest {
         assertThat(detail.statusHistory()).extracting("recordedByName")
                 .allMatch(name -> name.equals("Sachin Maleesha"));
     }
+
+    @Test
+    @DisplayName("11. Couriers updating own profile cannot change operational zone without Dispatcher authority")
+    void updateOwnProfile_rejectsZoneChangeWithoutDispatcherAuthority() {
+        var unauthorizedZoneChange = new com.swiftdrop.backend.courier.dto.CourierProfileProvisionRequest(
+                "+94770009988", "MOTORCYCLE", "Galle Fort", false);
+
+        assertThatThrownBy(() -> courierService.updateOwnProfile(courier1.getId(), unauthorizedZoneChange))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("Couriers cannot self-assign operational delivery zones");
+
+        // Updating phone number within current zone succeeds
+        var validPhoneUpdate = new com.swiftdrop.backend.courier.dto.CourierProfileProvisionRequest(
+                "+94770009988", "MOTORCYCLE", "Colombo Central", null);
+        var response = courierService.updateOwnProfile(courier1.getId(), validPhoneUpdate);
+        assertThat(response.phoneNumber()).isEqualTo("+94770009988");
+    }
+
+    @Test
+    @DisplayName("12. Operational provisioning requires Dispatcher or Administrator authority")
+    void provisionOperationalProfile_rejectsUnprivilegedCaller() {
+        var request = new com.swiftdrop.backend.courier.dto.CourierProfileProvisionRequest(
+                "+94779998877", "VAN", "Kandy", true);
+
+        // Without Dispatcher/Admin in SecurityContextHolder, provisionOperationalProfile is denied
+        assertThatThrownBy(() -> courierService.provisionOperationalProfile(courier1.getId(), request))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("Operational courier provisioning requires Dispatcher or Administrator authority");
+    }
+
+    @Test
+    @DisplayName("13. Exclude inactive users and couriers with unassigned zone from eligible pool")
+    void getEligibleCouriers_excludesInactiveUsersAndUnassignedZone() {
+        // Create courier with "Unassigned" zone
+        AppUser unassignedCourier = TestPeople.saved(em, "Unassigned Guy", "COURIER");
+        CourierProfile unassignedProfile = new CourierProfile(unassignedCourier, "+94771239999", "MOTORCYCLE", "Unassigned");
+        unassignedProfile.setActive(true);
+        courierProfiles.save(unassignedProfile);
+
+        // Create inactive user with courier profile
+        AppUser inactiveCourier = TestPeople.saved(em, "Inactive Guy", "COURIER");
+        em.createNativeQuery("UPDATE app_users SET active = false WHERE id = :id")
+                .setParameter("id", inactiveCourier.getId())
+                .executeUpdate();
+        em.clear();
+        AppUser reloaded = em.find(AppUser.class, inactiveCourier.getId());
+        CourierProfile inactiveProfile = new CourierProfile(reloaded, "+94771238888", "MOTORCYCLE", "Colombo Central");
+        inactiveProfile.setActive(true);
+        courierProfiles.save(inactiveProfile);
+
+        em.flush();
+
+        var eligible = courierService.getEligibleCouriers(null);
+        assertThat(eligible).extracting("fullName")
+                .contains("Sachin Maleesha")
+                .doesNotContain("Unassigned Guy", "Inactive Guy");
+    }
 }
 

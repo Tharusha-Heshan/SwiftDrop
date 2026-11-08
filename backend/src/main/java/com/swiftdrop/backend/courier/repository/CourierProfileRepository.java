@@ -29,4 +29,12 @@ public interface CourierProfileRepository extends JpaRepository<CourierProfile, 
 
     /** Couriers active in a specific delivery zone (used by Dispatcher for assignments). */
     List<CourierProfile> findByAssignedZoneIgnoreCaseAndActiveTrue(String assignedZone);
+
+    /** Active couriers whose user account is active and whose operational zone is assigned. */
+    @Query("SELECT c FROM CourierProfile c JOIN FETCH c.user u WHERE c.active = true AND u.active = true AND LOWER(c.assignedZone) != 'unassigned'")
+    List<CourierProfile> findEligibleCouriers();
+
+    /** Active couriers in a specific zone whose user account is active and operational zone is assigned. */
+    @Query("SELECT c FROM CourierProfile c JOIN FETCH c.user u WHERE c.active = true AND u.active = true AND LOWER(c.assignedZone) = LOWER(:zone) AND LOWER(c.assignedZone) != 'unassigned'")
+    List<CourierProfile> findEligibleCouriersByZone(@Param("zone") String zone);
 }

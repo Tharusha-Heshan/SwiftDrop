@@ -60,8 +60,7 @@ public class CourierController {
     public CourierProfileResponse updateOwnProfile(
             @Valid @RequestBody CourierProfileProvisionRequest request,
             @AuthenticationPrincipal Jwt user) {
-        boolean isDispatcherOrAdmin = CurrentUser.hasAnyRole(user, "DISPATCHER", "ADMIN");
-        return courierService.provisionProfile(CurrentUser.id(user), request, isDispatcherOrAdmin);
+        return courierService.updateOwnProfile(CurrentUser.id(user), request);
     }
 
     /**
@@ -72,7 +71,7 @@ public class CourierController {
     public CourierProfileResponse provisionCourierProfile(
             @PathVariable java.util.UUID courierId,
             @Valid @RequestBody CourierProfileProvisionRequest request) {
-        return courierService.provisionProfile(courierId, request, true);
+        return courierService.provisionOperationalProfile(courierId, request);
     }
 
     /**
