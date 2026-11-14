@@ -1,4 +1,4 @@
-import { DISPATCH_CHANGED_EVENT, DispatchError } from './dispatcherApi';
+import { DISPATCH_CHANGED_EVENT, DispatchError } from './dispatchCommon';
 import type {
   AdminRole,
   AdminUser,

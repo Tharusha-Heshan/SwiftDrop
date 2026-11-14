@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { navigate, routes } from '../../../app/router';
 import { logOut } from '../../auth/api/authApi';
-import { getStatusCounts, listUnassignedDeliveries, usingSampleData } from '../api/dispatcherApi';
+import { countUnassignedDeliveries, getStatusCounts, usingSampleData } from '../api/dispatcherApi';
 import { listMerchantApplications } from '../api/adminApi';
 import { dispatcherPages, dispatcherPath, dispatcherSections, type DispatcherPageId } from '../dispatcherRoutes';
 import { useDispatchData } from '../lib/useDispatchData';
@@ -19,13 +19,14 @@ interface DispatcherLayoutProps {
 /** Sidebar counts: merchant applications to review, parcels waiting for a courier, and failed deliveries. */
 async function loadNavCounts(): Promise<Partial<Record<DispatcherPageId, number>>> {
   const [pending, unassigned, counts] = await Promise.all([
-    listMerchantApplications('PENDING'), listUnassignedDeliveries(), getStatusCounts(),
+    listMerchantApplications('PENDING'), countUnassignedDeliveries(), getStatusCounts(),
   ]);
-  return { merchants: pending.length, unassigned: unassigned.length, failed: counts.FAILED };
+  return { merchants: pending.length, unassigned, failed: counts.FAILED };
 }
 
 export function DispatcherLayout({ page, preview, name, children }: DispatcherLayoutProps) {
   const { data: counts } = useDispatchData(loadNavCounts, []);
+  const section = dispatcherPages.find((p) => p.id === page)?.section;
 
   function signOut() {
     void logOut();
@@ -81,11 +82,11 @@ export function DispatcherLayout({ page, preview, name, children }: DispatcherLa
       </aside>
 
       <main className={styles.main}>
-        {(preview || usingSampleData) && (
+        {(usingSampleData() || section === 'Admin') && (
           <p className={styles.notice} role="note">
-            {usingSampleData
-              ? 'Showing sample data: these screens are not connected to the backend or the auth service yet, so changes here stay in this browser tab.'
-              : 'Development preview: you are not signed in.'}
+            {usingSampleData()
+              ? 'Development preview: you are not signed in, so these screens show sample data and changes stay in this browser tab.'
+              : 'This admin page still shows sample data: its backend is not built yet, so changes stay in this browser tab. The Dispatch pages are live.'}
           </p>
         )}
         {children}
