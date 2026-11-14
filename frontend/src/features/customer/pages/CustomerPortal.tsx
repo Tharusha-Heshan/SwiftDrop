@@ -15,6 +15,7 @@ import {
   type PagedDeliveries, type SavedAddress,
 } from '../api/customerApi';
 import s from '../components/CustomerPortal.module.css';
+import logoIcon from '../../../assets/auth/logo-box.svg';
 
 // PENDING and CONFIRMED are internal booking states. The assignment calls a confirmed booking CREATED.
 const STATUS_FLOW: DeliveryStatus[] = ['CONFIRMED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'];
@@ -28,8 +29,10 @@ const message = (error: unknown) => {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 };
 const deliveryUrl = (id: number) => `/customer/deliveries/${id}`;
-const link = (to: string, label: string, className?: string) => <button type="button" className={className ?? s.linkButton} onClick={() => navigate(to)}>{label}</button>;
+const link = (to: string, label: ReactNode, className?: string) => <button type="button" className={className ?? s.linkButton} onClick={() => navigate(to)}>{label}</button>;
 function Status({value}: {value: DeliveryStatus}) {return <span className={`${s.status} ${s[value.toLowerCase()]}`}>{STATUS_LABELS[value]}</span>}
+/** Line-style bell, sized like the text icons around it and drawn in the current text colour. */
+function BellIcon({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{display:'inline-block',verticalAlign:'middle'}}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>}
 function Spinner() {return <div className={s.info}>Loading SwiftDrop customer information…</div>}
 function Notice({children, error=false}:{children:ReactNode;error?:boolean}) {return <div role={error?'alert':'status'} className={error?s.alert:s.notice}>{children}</div>}
 
@@ -59,8 +62,8 @@ export function CustomerPortal() {
   const title=path===routes.customerDashboard?'Overview':path===routes.customerBook?'Create delivery':path===routes.customerDeliveries?'My deliveries':path===routes.customerTrack?'Track a parcel':path===routes.customerNotifications?'Notifications & Alerts':path===routes.customerAccount?'My account':path===routes.customerSupport?'Help & support':'Delivery details';
   return <div className={s.app}>
     <aside className={s.sidebar}>
-      <div className={s.brand}><span className={s.brandMark}>S</span><div><strong>SwiftDrop</strong><small>CUSTOMER PORTAL</small></div></div>
-      <nav aria-label="Customer navigation" className={s.nav}>{nav.map(([label,to],i)=><button key={label} type="button" className={`${s.navItem} ${selected===to?s.active:''}`} onClick={()=>navigate(to)}><span className={s.navIcon}>{['▦','◫','▤','◎','🔔','◯','?'][i]}</span>{label}</button>)}</nav>
+      <button type="button" className={s.brand} onClick={()=>navigate('/')} aria-label="SwiftDrop home"><span className={s.brandMark}><img src={logoIcon} width={22} height={22} alt="" /></span><div><strong>SwiftDrop</strong><small>CUSTOMER PORTAL</small></div></button>
+      <nav aria-label="Customer navigation" className={s.nav}>{nav.map(([label,to],i)=><button key={label} type="button" className={`${s.navItem} ${selected===to?s.active:''}`} onClick={()=>navigate(to)}><span className={s.navIcon}>{(['▦','◫','▤','◎',<BellIcon key="bell"/>,'◯','?'] as ReactNode[])[i]}</span>{label}</button>)}</nav>
       <div className={s.sidebarBottom}><div className={s.accountSummary}><strong>{profile?.name||'Customer'}</strong><small>Customer account</small></div><button className={s.navItem} onClick={()=>void logout()}>↪ &nbsp; Sign out</button></div>
     </aside>
     <div className={s.column}>
@@ -88,7 +91,7 @@ export function CustomerPortal() {
         </>}
       </main>
     </div>
-    <nav aria-label="Mobile customer navigation" className={s.mobileNav}>{nav.slice(0,6).map(([,to],i)=><button type="button" key={to} className={selected===to?s.mobileActive:''} onClick={()=>navigate(to)}><span>{['▦','◫','▤','◎','🔔','◯'][i]}</span><small>{['Home','Send','Deliveries','Track','Alerts','Account'][i]}</small></button>)}</nav>
+    <nav aria-label="Mobile customer navigation" className={s.mobileNav}>{nav.slice(0,6).map(([,to],i)=><button type="button" key={to} className={selected===to?s.mobileActive:''} onClick={()=>navigate(to)}><span>{(['▦','◫','▤','◎',<BellIcon key="bell" size={22}/>,'◯'] as ReactNode[])[i]}</span><small>{['Home','Send','Deliveries','Track','Alerts','Account'][i]}</small></button>)}</nav>
   </div>;
 }
 
@@ -102,7 +105,7 @@ function DashboardPage(){
     <div className={s.headingRow}><div><h2>Your shipping overview</h2><p>Manage bookings and follow the progress of every parcel.</p></div>{link(routes.customerBook,'Create a delivery',s.primary)}</div>
     <div className={s.stats}>{stats.map(([name,count])=><div key={name} className={s.stat}><div className={s.muted}>{name}</div><strong>{count}</strong></div>)}</div>
     <div className={s.twoColumns}><section className={s.card}><div className={s.cardHead}><h3>Quick actions</h3></div><div className={s.actionList}>
-      {link(routes.customerBook,'＋ Book a parcel',s.action)}{link(routes.customerDeliveries,'▤ View delivery history',s.action)}{link(routes.customerTrack,'◎ Track a parcel',s.action)}{link(routes.customerNotifications,'🔔 Notifications & alerts',s.action)}{link(routes.customerSupport,'? Get customer support',s.action)}
+      {link(routes.customerBook,'＋ Book a parcel',s.action)}{link(routes.customerDeliveries,'▤ View delivery history',s.action)}{link(routes.customerTrack,'◎ Track a parcel',s.action)}{link(routes.customerNotifications,<span><BellIcon size={15}/> Notifications &amp; alerts</span>,s.action)}{link(routes.customerSupport,'? Get customer support',s.action)}
     </div></section><section className={s.card}><h3>Delivery status</h3><p className={s.muted}>Track the status of your shipments. Courier updates appear automatically on the tracking screen.</p><div className={s.statusColumns}><div><strong>{data.countsByStatus.IN_TRANSIT+data.countsByStatus.OUT_FOR_DELIVERY}</strong><span>In transit</span></div><div><strong>{data.countsByStatus.FAILED}</strong><span>Failed</span></div></div></section></div>
     <section className={s.card}><div className={s.cardHead}><h3>Recent deliveries</h3>{link(routes.customerDeliveries,'View all →')}</div><DeliveryTable rows={data.recentDeliveries}/></section>
   </div>
@@ -273,7 +276,7 @@ export function PublicTrackingPage(){
   if(shownFor!==initial){setShownFor(initial);setNumber(isLink?'':initial);setData(null);setError('')}
   useEffect(()=>{if(!initial)return;let live=true;const run=()=>lookupTracking(initial).then(d=>{if(live){setData(d);setError('')}}).catch(e=>{if(live)setError(message(e))});void run();const timer=window.setInterval(()=>void run(),15000);return()=>{live=false;clearInterval(timer)}},[initial]);
   async function search(e:FormEvent){e.preventDefault();setLoading(true);setError('');try{const result=await trackPublic(number);setData(result);navigate(`/track/${encodeURIComponent(number.trim())}`)}catch(e){setData(null);setError(message(e))}finally{setLoading(false)}}
-  return <div className={s.publicPage}><div className={s.publicHeader}><button className={s.publicBrand} onClick={()=>navigate(routes.publicTrack)}><span className={s.brandMark}>S</span><strong>SwiftDrop</strong></button><div>{link(routes.login,'Customer login',s.secondary)}</div></div><main className={s.publicBody}><div className={s.publicIntro}><span className={s.eyebrow}>PARCEL TRACKING</span><h1>Know where your parcel is.</h1><p>Track SwiftDrop deliveries using the tracking number supplied by your sender.</p></div><section className={s.card}><form className={s.searchBar} onSubmit={e=>void search(e)}><input aria-label="Tracking number" required placeholder="Enter tracking number · SD-XXXXXXXXXX" value={number} onChange={e=>setNumber(e.target.value)}/><button className={s.primary} disabled={loading}>{loading?'Searching…':'Track parcel'}</button></form>{error&&<Notice error>{error}</Notice>}</section>
+  return <div className={s.publicPage}><div className={s.publicHeader}><button type="button" className={s.publicBrand} onClick={()=>navigate('/')}><span className={s.brandMark}><img src={logoIcon} width={22} height={22} alt="" /></span><strong>SwiftDrop</strong></button><div>{link(routes.login,'Customer login',s.secondary)}</div></div><main className={s.publicBody}><div className={s.publicIntro}><span className={s.eyebrow}>PARCEL TRACKING</span><h1>Know where your parcel is.</h1><p>Track SwiftDrop deliveries using the tracking number supplied by your sender.</p></div><section className={s.card}><form className={s.searchBar} onSubmit={e=>void search(e)}><input aria-label="Tracking number" required placeholder="Enter tracking number · SD-XXXXXXXXXX" value={number} onChange={e=>setNumber(e.target.value)}/><button className={s.primary} disabled={loading}>{loading?'Searching…':'Track parcel'}</button></form>{error&&<Notice error>{error}</Notice>}</section>
   {data&&<section className={s.card}><div className={s.cardHead}><div><span className={s.eyebrow}>TRACKING NUMBER</span><h2 className={s.mono}>{data.trackingNumber}</h2></div><Status value={data.status}/></div><div className={s.route}><div><small>FROM</small><strong>{data.fromCity||'—'}</strong></div><span>→</span><div><small>TO</small><strong>{data.toCity||'—'}</strong></div></div><TrackingTimeline status={data.status} events={data.events}/><p className={s.smallNote}>Updates refresh automatically. Personal contact details and addresses are not shown publicly.</p></section>}
   </main></div>
 }

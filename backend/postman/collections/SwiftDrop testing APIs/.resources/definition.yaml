@@ -1,0 +1,5 @@
+$kind: collection
+variables:
+  authUrl: ""
+  accessToken: ""
+  refreshToken: ""

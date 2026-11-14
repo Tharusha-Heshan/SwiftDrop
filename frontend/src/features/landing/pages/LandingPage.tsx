@@ -1,10 +1,26 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import logoIcon from '../../../assets/auth/logo-box.svg';
 import routeIllustration from '../../../assets/auth/route-illustration.svg';
 import { navigate, routes } from '../../../app/router';
-import { landingPage, withNext } from '../../auth/lib/landing';
-import { getAccessToken } from '../../auth/lib/session';
+import { withNext } from '../../auth/lib/landing';
+import { refresh } from '../../auth/api/authApi';
+import { getAccessToken, getRefreshToken, readClaims } from '../../auth/lib/session';
 import styles from './LandingPage.module.css';
+
+interface Account { name: string; email: string | null; initial: string; home: string }
+
+/** The signed-in account from the in-memory token (display only), or null when signed out. */
+function readAccount(): Account | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  const claims = readClaims(token);
+  const name = claims.name?.trim() || claims.email || 'My account';
+  // landingPage() also consumes a remembered "?next=": only peek at the role-based home here
+  const permissions = claims.entitlements ?? [];
+  const home = permissions.includes('merchant:api-access') ? routes.merchantDashboard
+    : permissions.includes('parcel:read-own') ? routes.customerDashboard : routes.account;
+  return { name, email: claims.email ?? null, initial: name.charAt(0).toUpperCase(), home };
+}
 
 const STEPS = [
   { title: 'Book', text: 'Enter pickup and delivery details and see the fee before you confirm.' },
@@ -18,7 +34,16 @@ const STEPS = [
  */
 export function LandingPage() {
   const [number, setNumber] = useState('');
-  const loggedIn = getAccessToken() !== null;
+  const [account, setAccount] = useState<Account | null>(() => readAccount());
+  const loggedIn = account !== null;
+
+  // The access token lives only in memory: after a reload, restore the session from the refresh token
+  useEffect(() => {
+    if (account || !getRefreshToken()) return;
+    let active = true;
+    void refresh().then((ok) => { if (active && ok) setAccount(readAccount()); });
+    return () => { active = false; };
+  }, [account]);
 
   function track(event: FormEvent) {
     event.preventDefault();
@@ -36,10 +61,20 @@ export function LandingPage() {
           SwiftDrop
         </a>
         <nav className={styles.nav} aria-label="Account">
-          {loggedIn ? (
-            <button type="button" className={styles.primaryButton} onClick={() => navigate(landingPage())}>
-              My dashboard
-            </button>
+          {account ? (
+            <>
+              <button type="button" className={styles.account} onClick={() => navigate(account.home)}
+                title={account.email ?? undefined}>
+                <span className={styles.avatar} aria-hidden="true">{account.initial}</span>
+                <span className={styles.accountText}>
+                  <strong>{account.name}</strong>
+                  <small>My account</small>
+                </span>
+              </button>
+              <button type="button" className={styles.primaryButton} onClick={() => navigate(account.home)}>
+                My dashboard
+              </button>
+            </>
           ) : (
             <>
               <button type="button" className={styles.textButton} onClick={() => navigate(routes.login)}>Log in</button>
@@ -80,7 +115,7 @@ export function LandingPage() {
           <article className={styles.card}>
             <h2>Send a parcel</h2>
             <p>Book a delivery in minutes, see the price first, and download your receipt.</p>
-            <button type="button" className={styles.cardLink} onClick={() => navigate(loggedIn ? landingPage() : routes.signup)}>
+            <button type="button" className={styles.cardLink} onClick={() => navigate(account ? account.home : routes.signup)}>
               {loggedIn ? 'Go to my dashboard' : 'Create a free account'} →
             </button>
           </article>

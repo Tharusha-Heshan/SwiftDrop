@@ -68,6 +68,63 @@
   box-shadow: var(--shadow-button);
 }
 
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--color-border, #e8dfcd);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.account:hover {
+  background: #fff7e1;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.accountText {
+  display: grid;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.accountText strong {
+  font-size: 13px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountText small {
+  font-size: 11px;
+  color: var(--color-text-muted, #82776a);
+}
+
+@media (max-width: 600px) {
+  .accountText {
+    display: none;
+  }
+  .account {
+    padding: 4px;
+  }
+}
+
 .textButton:hover,
 .footerLink:hover {
   text-decoration: underline;
