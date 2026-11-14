@@ -14,6 +14,7 @@ import com.swiftdrop.backend.shared.error.NotFoundException;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class MerchantWebhookService {
@@ -38,15 +40,25 @@ public class MerchantWebhookService {
     private final MerchantWebhookConfigRepository configRepository;
     private final WebhookDeliveryLogRepository logRepository;
     private final EntityManager entityManager;
+    private final SsrfValidator ssrfValidator;
 
     private volatile HttpClient httpClient;
+
+    @Autowired
+    public MerchantWebhookService(MerchantWebhookConfigRepository configRepository,
+                                  WebhookDeliveryLogRepository logRepository,
+                                  EntityManager entityManager,
+                                  SsrfValidator ssrfValidator) {
+        this.configRepository = configRepository;
+        this.logRepository = logRepository;
+        this.entityManager = entityManager;
+        this.ssrfValidator = Objects.requireNonNull(ssrfValidator, "ssrfValidator must not be null");
+    }
 
     public MerchantWebhookService(MerchantWebhookConfigRepository configRepository,
                                   WebhookDeliveryLogRepository logRepository,
                                   EntityManager entityManager) {
-        this.configRepository = configRepository;
-        this.logRepository = logRepository;
-        this.entityManager = entityManager;
+        this(configRepository, logRepository, entityManager, new SsrfValidator());
     }
 
     private HttpClient getHttpClient() {
@@ -83,7 +95,7 @@ public class MerchantWebhookService {
     public WebhookConfigResponse createWebhook(AppUser owner, CreateWebhookRequest request) {
         Merchant merchant = resolveMerchant(owner);
         String endpointUrl = request.endpointUrl().trim();
-        SsrfValidator.validate(endpointUrl);
+        ssrfValidator.validate(endpointUrl);
 
         String secretKey = (request.secretKey() != null && !request.secretKey().isBlank())
                 ? request.secretKey().trim()
@@ -107,7 +119,7 @@ public class MerchantWebhookService {
                 .orElseThrow(() -> new NotFoundException("Webhook configuration not found: " + webhookId));
 
         String endpointUrl = request.endpointUrl().trim();
-        SsrfValidator.validate(endpointUrl);
+        ssrfValidator.validate(endpointUrl);
 
         config.setEndpointUrl(endpointUrl);
         config.setSubscribedEvents(request.subscribedEvents().trim());
