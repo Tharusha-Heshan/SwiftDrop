@@ -4,8 +4,11 @@ import { refresh } from '../../auth/api/authApi';
 import { getAccessToken, readClaims, type AccessClaims } from '../../auth/lib/session';
 import styles from './Dispatcher.module.css';
 
-/** Dispatch work is done by admins; the ADMIN role carries this permission. The backend still checks every call. */
-const DISPATCH_ENTITLEMENT = 'parcel:assign';
+/**
+ * Only ADMIN has user:read (DISPATCHER has parcel:assign too, but SwiftDrop gives the admin area to admins).
+ * The backend and the auth service still check every call.
+ */
+const DISPATCH_ENTITLEMENT = 'user:read';
 
 let pendingRefresh: Promise<boolean> | undefined;
 

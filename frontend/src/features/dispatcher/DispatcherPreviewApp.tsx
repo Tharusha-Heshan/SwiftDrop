@@ -8,5 +8,5 @@ export function DispatcherPreviewApp() {
   const route = matchDispatcherRoute(path);
   return route
     ? <DispatcherArea route={route} />
-    : <p style={{ padding: 24 }}>This page isn't part of the dispatcher area. <a href="/dispatcher.html">Back to the dispatcher</a></p>;
+    : <p style={{ padding: 24 }}>This page isn&apos;t part of the admin area. <a href="/dispatcher.html">Back to the admin overview</a></p>;
 }

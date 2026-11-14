@@ -244,3 +244,46 @@ export const sampleAssignments: SampleAssignment[] = [
   { assignmentId: 10, deliveryId: 13, courierId: 3, assignedByName: 'Dispatch team', assignedAt: hoursAgo(9), active: true, endedByName: null, endedAt: null, endReason: null },
   { assignmentId: 11, deliveryId: 30, courierId: 3, assignedByName: 'Dispatch team', assignedAt: hoursAgo(82), active: null, endedByName: 'Dispatch team', endedAt: hoursAgo(71), endReason: 'Returned to hub after refusal' },
 ];
+
+/**
+ * Completed deliveries from the last 30 days, for the reports. Some needed a second attempt: their FAILED tracking
+ * event stays in the history (a failed attempt) although the delivery itself ended DELIVERED.
+ */
+const historyRecipients: [string, string, string, string][] = [
+  ['Nuwan Perera', '21 Flower Road', 'Colombo', 'Colombo'],
+  ['Sachini Fernando', '8 Lake Drive', 'Kandy', 'Kandy'],
+  ['Gayan Silva', '33 Beach Road', 'Galle', 'Galle'],
+  ['Madushani Kumari', '5 Temple Road', 'Kurunegala', 'Kurunegala'],
+  ['Roshan Jayawardena', '70 Main Street', 'Negombo', 'Gampaha'],
+  ['Thilini Herath', '14 Station Road', 'Matara', 'Matara'],
+];
+/** [days ago, deliveries that day, of which needed a second attempt] */
+const historyDays: [number, number, number][] = [
+  [1, 2, 1], [2, 1, 0], [3, 2, 0], [4, 1, 1], [5, 1, 0], [6, 2, 0], [8, 1, 0], [9, 2, 1], [11, 1, 0], [12, 2, 0],
+  [14, 1, 0], [16, 2, 1], [18, 1, 0], [20, 2, 0], [23, 1, 0], [25, 2, 1], [27, 1, 0], [29, 1, 0],
+];
+let historyId = 100;
+for (const [days, count, retried] of historyDays) {
+  for (let i = 0; i < count; i += 1) {
+    const id = historyId++;
+    const [name, street, city, district] = historyRecipients[id % historyRecipients.length];
+    const deliveredHours = days * 24 - 3 - i * 2;
+    const createdHours = deliveredHours + 30;
+    const secondAttempt = i < retried;
+    sampleDeliveries.push({
+      id, trackingNumber: `SD1047${String(id).padStart(4, '0')}`, deliveryType: 'STANDARD', status: 'DELIVERED',
+      source: id % 2 ? 'MERCHANT' : 'CUSTOMER', estimatedFee: 350 + (id % 4) * 50, specialInstructions: null,
+      createdAt: hoursAgo(createdHours), deliveredAt: hoursAgo(deliveredHours),
+      pickup: id % 3 ? colomboWarehouse : kandyShop,
+      destination: address(name, '0770000000', street, city, district),
+      parcels: [parcel('Parcel', 1 + (id % 3))],
+      trackingEvents: [
+        event('CONFIRMED', 'Booking confirmed', createdHours),
+        event('PICKED_UP', 'Picked up by courier', createdHours - 6, 'Colombo Hub'),
+        ...(secondAttempt ? [event('FAILED', 'Recipient unavailable', deliveredHours + 20, city)] : []),
+        event('DELIVERED', 'Delivered to recipient', deliveredHours, city),
+      ],
+      courierId: (id % 3) + 1,
+    });
+  }
+}

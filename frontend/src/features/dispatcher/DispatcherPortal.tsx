@@ -3,11 +3,18 @@ import type { AccessClaims } from '../auth/lib/session';
 import { DispatcherLayout } from './components/DispatcherLayout';
 import { ProtectedDispatcherRoute } from './components/ProtectedDispatcherRoute';
 import type { DispatcherRoute } from './dispatcherRoutes';
+import { AdminOverviewPage } from './pages/AdminOverviewPage';
 import { AllDeliveriesPage } from './pages/AllDeliveriesPage';
 import { CourierWorkloadsPage } from './pages/CourierWorkloadsPage';
+import { CouriersPage } from './pages/CouriersPage';
+import { DeliveryZonesPage } from './pages/DeliveryZonesPage';
 import { FailedDeliveriesPage } from './pages/FailedDeliveriesPage';
+import { MerchantApprovalsPage } from './pages/MerchantApprovalsPage';
 import { OverviewPage } from './pages/OverviewPage';
+import { PricingPage } from './pages/PricingPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { UnassignedParcelsPage } from './pages/UnassignedParcelsPage';
+import { UsersRolesPage } from './pages/UsersRolesPage';
 
 function DispatcherPortal({ route, claims }: { route: DispatcherRoute; claims?: AccessClaims }) {
   const { page, preview } = route;
@@ -18,10 +25,17 @@ function DispatcherPortal({ route, claims }: { route: DispatcherRoute; claims?: 
 
   function renderPage() {
     switch (page.id) {
-      case 'overview': return <OverviewPage preview={preview} />;
+      case 'admin': return <AdminOverviewPage preview={preview} />;
+      case 'users': return <UsersRolesPage />;
+      case 'merchants': return <MerchantApprovalsPage />;
+      case 'couriers': return <CouriersPage />;
+      case 'zones': return <DeliveryZonesPage />;
+      case 'pricing': return <PricingPage />;
+      case 'reports': return <ReportsPage />;
+      case 'operations': return <OverviewPage preview={preview} />;
       case 'unassigned': return <UnassignedParcelsPage preview={preview} />;
       case 'deliveries': return <AllDeliveriesPage preview={preview} />;
-      case 'couriers': return <CourierWorkloadsPage preview={preview} />;
+      case 'workloads': return <CourierWorkloadsPage preview={preview} />;
       case 'failed': return <FailedDeliveriesPage preview={preview} />;
     }
   }
@@ -34,8 +48,8 @@ function DispatcherPortal({ route, claims }: { route: DispatcherRoute; claims?: 
 }
 
 /**
- * The dispatch area for a matched route. Dispatch work is done by admins: signed-in pages need the parcel:assign
- * entitlement that the ADMIN role carries;
+ * The admin area (admin pages and dispatch pages) for a matched route. Signed-in pages need the ADMIN role's
+ * user:read entitlement;
  * the development preview shows the screens without signing in.
  *
  * To add it to the app, in app/App.tsx before the switch:

@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { navigate, routes } from '../../../app/router';
 import { logOut } from '../../auth/api/authApi';
 import { getStatusCounts, listUnassignedDeliveries, usingSampleData } from '../api/dispatcherApi';
-import { dispatcherPages, dispatcherPath, type DispatcherPageId } from '../dispatcherRoutes';
+import { listMerchantApplications } from '../api/adminApi';
+import { dispatcherPages, dispatcherPath, dispatcherSections, type DispatcherPageId } from '../dispatcherRoutes';
 import { useDispatchData } from '../lib/useDispatchData';
 import { DispatcherIcon } from './DispatcherIcon';
 import { DispatcherLink } from './DispatcherLink';
@@ -15,10 +16,12 @@ interface DispatcherLayoutProps {
   children: ReactNode;
 }
 
-/** Sidebar counts: parcels waiting for a courier, and failed deliveries. */
+/** Sidebar counts: merchant applications to review, parcels waiting for a courier, and failed deliveries. */
 async function loadNavCounts(): Promise<Partial<Record<DispatcherPageId, number>>> {
-  const [unassigned, counts] = await Promise.all([listUnassignedDeliveries(), getStatusCounts()]);
-  return { unassigned: unassigned.length, failed: counts.FAILED };
+  const [pending, unassigned, counts] = await Promise.all([
+    listMerchantApplications('PENDING'), listUnassignedDeliveries(), getStatusCounts(),
+  ]);
+  return { merchants: pending.length, unassigned: unassigned.length, failed: counts.FAILED };
 }
 
 export function DispatcherLayout({ page, preview, name, children }: DispatcherLayoutProps) {
@@ -40,22 +43,27 @@ export function DispatcherLayout({ page, preview, name, children }: DispatcherLa
           <span className={styles.roleChip}>Admin</span>
         </div>
 
-        <nav aria-label="Dispatch navigation">
-          <ul className={styles.navigation}>
-            {dispatcherPages.map(({ id, title, icon }) => {
-              const count = counts?.[id];
-              return (
-                <li key={id}>
-                  <DispatcherLink className={styles.navItem} href={dispatcherPath(id, preview)}
-                    aria-current={page === id ? 'page' : undefined}>
-                    <DispatcherIcon name={icon} />
-                    <span className={styles.navLabel}>{title}</span>
-                    {count ? <span className={styles.navCount} aria-label={`${count} waiting`}>{count}</span> : null}
-                  </DispatcherLink>
-                </li>
-              );
-            })}
-          </ul>
+        <nav aria-label="Admin navigation">
+          {dispatcherSections.map((section) => (
+            <div key={section} className={styles.navSection}>
+              <h2 className={styles.navHeading}>{section}</h2>
+              <ul className={styles.navigation}>
+                {dispatcherPages.filter((p) => p.section === section).map(({ id, title, icon }) => {
+                  const count = counts?.[id];
+                  return (
+                    <li key={id}>
+                      <DispatcherLink className={styles.navItem} href={dispatcherPath(id, preview)}
+                        aria-current={page === id ? 'page' : undefined}>
+                        <DispatcherIcon name={icon} />
+                        <span className={styles.navLabel}>{title}</span>
+                        {count ? <span className={styles.navCount} aria-label={`${count} waiting`}>{count}</span> : null}
+                      </DispatcherLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -76,7 +84,7 @@ export function DispatcherLayout({ page, preview, name, children }: DispatcherLa
         {(preview || usingSampleData) && (
           <p className={styles.notice} role="note">
             {usingSampleData
-              ? 'Showing sample data: the backend has no dispatcher endpoints yet, so changes here stay in this browser tab.'
+              ? 'Showing sample data: these screens are not connected to the backend or the auth service yet, so changes here stay in this browser tab.'
               : 'Development preview: you are not signed in.'}
           </p>
         )}
@@ -100,7 +108,7 @@ export function PageHeader({ title, subtitle, breadcrumb, preview = false, actio
       <div>
         {breadcrumb && (
           <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-            <DispatcherLink href={dispatcherPath('overview', preview)}>Operations</DispatcherLink>
+            <DispatcherLink href={dispatcherPath('operations', preview)}>Operations</DispatcherLink>
             <DispatcherIcon name="right" size={14} />
             <span aria-current="page">{title}</span>
           </nav>

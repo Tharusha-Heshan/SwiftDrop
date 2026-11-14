@@ -16,6 +16,16 @@ const paths = {
   close: 'M6 6l12 12M18 6 6 18',
   pin: 'M18 10c0 4-6 9-6 9s-6-5-6-9a6 6 0 1 1 12 0Zm-6 0h.01',
   user: 'M20 20a8 8 0 0 0-16 0m12-12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+  users: 'M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1m11-12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm9 12v-1a4 4 0 0 0-3-3.9M16 4.1a4 4 0 0 1 0 7.8',
+  store: 'M4 10v10h16V10M3 4h18l-1 6H4L3 4Zm6 16v-5h6v5',
+  map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14',
+  tag: 'M3 12V4h8l10 10-8 8L3 12Zm5-4h.01',
+  chart: 'M4 4v16h16M8 16v-5m4 5V8m4 8v-3',
+  pulse: 'M3 12h4l3-7 4 14 3-7h4',
+  plus: 'M12 5v14M5 12h14',
+  edit: 'M4 20h4L19 9l-4-4L4 16v4Zm9-13 4 4',
+  lock: 'M6 11h12v9H6zm2 0V8a4 4 0 1 1 8 0v3',
+  unlock: 'M6 11h12v9H6zm2 0V8a4 4 0 0 1 7.5-2',
 };
 
 export type DispatcherIconName = keyof typeof paths;
