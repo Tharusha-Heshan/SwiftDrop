@@ -99,7 +99,7 @@ export function OverviewPage({ preview }: { preview: boolean }) {
         <section className={styles.panel}>
           <header className={styles.panelHeader}>
             <h2>Courier workload</h2>
-            <DispatcherLink className={styles.textLink} href={dispatcherPath('couriers', preview)}>Details</DispatcherLink>
+            <DispatcherLink className={styles.textLink} href={dispatcherPath('workloads', preview)}>Details</DispatcherLink>
           </header>
           <ul className={styles.workloadList}>
             {data?.couriers.map((c) => (

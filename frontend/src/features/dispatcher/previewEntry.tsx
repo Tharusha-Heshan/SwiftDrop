@@ -9,7 +9,7 @@ import { dispatcherPath, matchDispatcherRoute } from './dispatcherRoutes';
  * app/App.tsx. It starts on the development preview; the sidebar links then work as in the real app.
  */
 if (!matchDispatcherRoute(window.location.pathname)) {
-  window.history.replaceState(null, '', dispatcherPath('overview', import.meta.env.DEV));
+  window.history.replaceState(null, '', dispatcherPath('admin', import.meta.env.DEV));
 }
 
 createRoot(document.getElementById('root')!).render(

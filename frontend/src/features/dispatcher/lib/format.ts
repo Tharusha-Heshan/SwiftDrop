@@ -1,3 +1,4 @@
+import type { AdminRole, MerchantApplicationStatus } from '../api/adminTypes';
 import type { CourierAvailability, DeliverySource, DeliveryStatus, DispatchDelivery, DispatchParcel } from '../api/dispatcherTypes';
 
 export const statusLabels: Record<DeliveryStatus, string> = {
@@ -65,4 +66,31 @@ export function latestFailure(delivery: DispatchDelivery) {
   const latest = failures.reduce<(typeof failures)[number] | undefined>(
     (newest, e) => (!newest || e.eventTime > newest.eventTime ? e : newest), undefined);
   return { latest, attempts: failures.length };
+}
+
+export const roleLabels: Record<AdminRole, string> = {
+  CUSTOMER: 'Customer',
+  MERCHANT: 'Merchant',
+  COURIER: 'Courier',
+  ADMIN: 'Admin',
+};
+
+export const merchantStatusLabels: Record<MerchantApplicationStatus, string> = {
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  SUSPENDED: 'Suspended',
+};
+
+/** Delivered ÷ (delivered + failed); null when there is nothing to divide. */
+export function successRate(delivered: number, failed: number): number | null {
+  return delivered + failed === 0 ? null : delivered / (delivered + failed);
+}
+
+export function formatPercent(rate: number | null): string {
+  return rate === null ? '—' : `${(rate * 100).toFixed(1)}%`;
+}
+
+export function formatLkr(amount: number): string {
+  return `LKR ${amount.toLocaleString('en-LK', { maximumFractionDigits: 2 })}`;
 }
