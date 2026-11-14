@@ -45,7 +45,8 @@ export interface DispatchTrackingEvent {
 
 /** The courier currently assigned to a delivery (Delivery.courier and the active CourierAssignment). */
 export interface AssignedCourier {
-  courierId: number;
+  /** The courier profile id; null for a courier set on the delivery before courier profiles existed. */
+  courierId: number | null;
   name: string;
 }
 
