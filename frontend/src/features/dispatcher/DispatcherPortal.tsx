@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { AccessClaims } from '../auth/lib/session';
+import { setDispatchSource } from './api/dispatcherApi';
 import { DispatcherLayout } from './components/DispatcherLayout';
 import { ProtectedDispatcherRoute } from './components/ProtectedDispatcherRoute';
 import type { DispatcherRoute } from './dispatcherRoutes';
@@ -57,6 +58,8 @@ function DispatcherPortal({ route, claims }: { route: DispatcherRoute; claims?: 
  *   if (dispatcherRoute) return <DispatcherArea route={dispatcherRoute} />;
  */
 export function DispatcherArea({ route }: { route: DispatcherRoute }) {
+  // Before any page loads data: the preview has no sign-in, so it uses sample data
+  setDispatchSource(route.preview ? 'sample' : 'api');
   if (route.preview) return <DispatcherPortal route={route} />;
   return (
     <ProtectedDispatcherRoute>
